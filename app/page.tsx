@@ -52,6 +52,7 @@ export default function Home() {
   const [selectedAnswers, setSelectedAnswers] = useState<Record<string, number[]>>({});
   const [quizResult, setQuizResult] = useState<QuizResult[] | null>(null);
   const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [authMessage, setAuthMessage] = useState("");
   const [statusMessage, setStatusMessage] = useState("");
   const [adminDraft, setAdminDraft] = useState<LessonBundle>(demoLessonBundle);
@@ -267,18 +268,27 @@ export default function Home() {
     );
   }
 
-  async function sendMagicLink(event: FormEvent<HTMLFormElement>) {
+  async function signInWithPassword(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!supabase) return;
 
-    const { error } = await supabase.auth.signInWithOtp({
+    const { error } = await supabase.auth.signInWithPassword({
       email,
-      options: {
-        emailRedirectTo: window.location.origin
-      }
+      password
     });
 
-    setAuthMessage(error ? error.message : "Check your email for the login link.");
+    setAuthMessage(error ? error.message : "Signed in.");
+  }
+
+  async function signUpWithPassword() {
+    if (!supabase) return;
+
+    const { error } = await supabase.auth.signUp({
+      email,
+      password
+    });
+
+    setAuthMessage(error ? error.message : "Account created. You can sign in now.");
   }
 
   async function signOut() {
@@ -507,9 +517,12 @@ export default function Home() {
             <AuthCard
               profile={profile}
               email={email}
+              password={password}
               authMessage={authMessage}
               onEmailChange={setEmail}
-              onSignIn={sendMagicLink}
+              onPasswordChange={setPassword}
+              onSignIn={signInWithPassword}
+              onSignUp={signUpWithPassword}
               onSignOut={signOut}
             />
           </aside>
@@ -598,16 +611,22 @@ function ChecklistItem({ done, number, title, text }: { done: boolean; number: s
 function AuthCard({
   profile,
   email,
+  password,
   authMessage,
   onEmailChange,
+  onPasswordChange,
   onSignIn,
+  onSignUp,
   onSignOut
 }: {
   profile: Profile | null;
   email: string;
+  password: string;
   authMessage: string;
   onEmailChange: (value: string) => void;
+  onPasswordChange: (value: string) => void;
   onSignIn: (event: FormEvent<HTMLFormElement>) => void;
+  onSignUp: () => void;
   onSignOut: () => void;
 }) {
   if (!isSupabaseConfigured) {
@@ -636,8 +655,22 @@ function AuthCard({
             <label htmlFor="email">Email</label>
             <input id="email" type="email" value={email} onChange={(event) => onEmailChange(event.target.value)} required />
           </div>
+          <div className="field">
+            <label htmlFor="password">Password</label>
+            <input
+              id="password"
+              minLength={6}
+              type="password"
+              value={password}
+              onChange={(event) => onPasswordChange(event.target.value)}
+              required
+            />
+          </div>
           <button className="primary" type="submit">
-            Send magic link
+            Sign in
+          </button>
+          <button className="secondary" type="button" onClick={onSignUp}>
+            Create account
           </button>
         </form>
       )}

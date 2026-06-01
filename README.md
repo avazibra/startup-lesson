@@ -35,10 +35,10 @@ NEXT_PUBLIC_SUPABASE_URL=your_project_url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_anon_key
 ```
 
-For magic-link login, also set these in Supabase:
+For simpler MVP testing, use email/password auth:
 
-- `Authentication -> URL Configuration -> Site URL`: `https://startup-lesson.vercel.app`
-- `Authentication -> URL Configuration -> Redirect URLs`: `https://startup-lesson.vercel.app`
+- `Authentication -> Providers -> Email`: enabled
+- Optional during testing: turn off email confirmation so new accounts can sign in immediately
 
 ## Make Yourself Admin
 
