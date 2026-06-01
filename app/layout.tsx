@@ -18,9 +18,11 @@ export default function RootLayout({
           dangerouslySetInnerHTML={{
             __html: `
 try {
-  var storedTheme = localStorage.getItem("theme");
-  var preferredTheme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
-  document.documentElement.dataset.theme = storedTheme || preferredTheme;
+  var storedPreference = localStorage.getItem("theme");
+  var preference = storedPreference === "light" || storedPreference === "dark" || storedPreference === "system" ? storedPreference : "system";
+  var systemTheme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+  document.documentElement.dataset.theme = preference === "system" ? systemTheme : preference;
+  document.documentElement.dataset.themePreference = preference;
 } catch (_) {}
             `
           }}
