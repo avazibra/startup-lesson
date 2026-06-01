@@ -1,0 +1,1185 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Startup Fundamentals | Video Lesson Prototype</title>
+  <style>
+    :root {
+      --bg: #f6f8fb;
+      --surface: #ffffff;
+      --surface-muted: #f8fafc;
+      --text: #0f172a;
+      --muted: #64748b;
+      --line: #e2e8f0;
+      --blue: #2563eb;
+      --blue-dark: #1d4ed8;
+      --blue-soft: #dbeafe;
+      --green: #16a34a;
+      --green-soft: #dcfce7;
+      --amber: #b45309;
+      --amber-soft: #fef3c7;
+      --red: #dc2626;
+      --red-soft: #fee2e2;
+      --shadow: 0 20px 45px rgba(15, 23, 42, 0.08);
+      --radius: 8px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.5;
+    }
+
+    button,
+    input {
+      font: inherit;
+    }
+
+    button {
+      min-height: 42px;
+      border: 0;
+      border-radius: var(--radius);
+      cursor: pointer;
+      transition: transform 160ms ease, background 160ms ease, color 160ms ease, box-shadow 160ms ease, border-color 160ms ease;
+    }
+
+    button:hover:not(:disabled) {
+      transform: translateY(-1px);
+    }
+
+    button:focus-visible,
+    input:focus-visible {
+      outline: 3px solid rgba(37, 99, 235, 0.28);
+      outline-offset: 2px;
+    }
+
+    button:disabled,
+    .is-disabled {
+      cursor: not-allowed;
+      opacity: 0.58;
+      transform: none;
+    }
+
+    .shell {
+      width: min(1180px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 24px 0 48px;
+    }
+
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      margin: 0 -16px 28px;
+      padding: 14px 16px;
+      background: rgba(246, 248, 251, 0.88);
+      backdrop-filter: blur(16px);
+      border-bottom: 1px solid rgba(226, 232, 240, 0.72);
+    }
+
+    .topbar-inner {
+      width: min(1180px, 100%);
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+
+    .brand {
+      min-width: 0;
+    }
+
+    .eyebrow {
+      margin: 0 0 2px;
+      color: var(--muted);
+      font-size: 0.78rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .brand h1 {
+      margin: 0;
+      font-size: clamp(1.05rem, 2vw, 1.35rem);
+      line-height: 1.2;
+      letter-spacing: 0;
+    }
+
+    .course-progress {
+      flex: 0 0 auto;
+      width: min(260px, 38vw);
+      display: grid;
+      gap: 7px;
+    }
+
+    .progress-label {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      color: var(--muted);
+      font-size: 0.82rem;
+      font-weight: 700;
+    }
+
+    .progress-track {
+      height: 8px;
+      overflow: hidden;
+      border-radius: 999px;
+      background: #e5edf8;
+    }
+
+    .progress-fill {
+      width: 0%;
+      height: 100%;
+      border-radius: inherit;
+      background: var(--blue);
+      transition: width 240ms ease;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 336px;
+      gap: 24px;
+      align-items: start;
+    }
+
+    .stack {
+      display: grid;
+      gap: 20px;
+    }
+
+    .card {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--surface);
+      box-shadow: var(--shadow);
+    }
+
+    .lesson-card {
+      overflow: hidden;
+    }
+
+    .lesson-copy {
+      padding: 24px 24px 20px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .lesson-copy h2 {
+      margin: 0 0 8px;
+      font-size: clamp(1.5rem, 3.4vw, 2.25rem);
+      line-height: 1.08;
+      letter-spacing: 0;
+    }
+
+    .lesson-copy p {
+      max-width: 720px;
+      margin: 0;
+      color: var(--muted);
+      font-size: 1rem;
+    }
+
+    .video-frame {
+      position: relative;
+      aspect-ratio: 16 / 9;
+      background: #0f172a;
+    }
+
+    #player {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+    }
+
+    .video-meta {
+      display: grid;
+      gap: 12px;
+      padding: 18px 24px 22px;
+      background: var(--surface);
+    }
+
+    .video-status-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      width: fit-content;
+      min-height: 30px;
+      padding: 5px 10px;
+      border-radius: 999px;
+      background: var(--surface-muted);
+      color: var(--muted);
+      border: 1px solid var(--line);
+      font-size: 0.82rem;
+      font-weight: 750;
+    }
+
+    .status-pill::before {
+      content: "";
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #94a3b8;
+    }
+
+    .status-pill.success {
+      background: var(--green-soft);
+      color: #166534;
+      border-color: #bbf7d0;
+    }
+
+    .status-pill.success::before {
+      background: var(--green);
+    }
+
+    .status-pill.warning {
+      background: var(--amber-soft);
+      color: #92400e;
+      border-color: #fde68a;
+    }
+
+    .status-pill.warning::before {
+      background: var(--amber);
+    }
+
+    .demo-button {
+      flex: 0 0 auto;
+      padding: 0 13px;
+      background: #eef2ff;
+      color: #3730a3;
+      border: 1px solid #c7d2fe;
+      font-size: 0.84rem;
+      font-weight: 750;
+    }
+
+    .progress-note {
+      margin: 0;
+      color: var(--muted);
+      font-size: 0.92rem;
+    }
+
+    .progress-note strong {
+      color: var(--text);
+    }
+
+    .side-panel {
+      position: sticky;
+      top: 96px;
+      display: grid;
+      gap: 20px;
+    }
+
+    .panel {
+      padding: 20px;
+    }
+
+    .panel h3,
+    .quiz-card h3,
+    .result-card h3,
+    .next-card h3 {
+      margin: 0;
+      font-size: 1rem;
+      letter-spacing: 0;
+    }
+
+    .checklist {
+      display: grid;
+      gap: 12px;
+      margin: 18px 0 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .check-item {
+      display: grid;
+      grid-template-columns: 28px minmax(0, 1fr);
+      gap: 10px;
+      align-items: start;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--surface-muted);
+      transition: border-color 160ms ease, background 160ms ease;
+    }
+
+    .check-icon {
+      display: grid;
+      place-items: center;
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: #e2e8f0;
+      color: #475569;
+      font-size: 0.82rem;
+      font-weight: 850;
+    }
+
+    .check-item strong {
+      display: block;
+      font-size: 0.92rem;
+    }
+
+    .check-item span:last-child {
+      display: block;
+      color: var(--muted);
+      font-size: 0.82rem;
+    }
+
+    .check-item.complete {
+      border-color: #bbf7d0;
+      background: #f0fdf4;
+    }
+
+    .check-item.complete .check-icon {
+      background: var(--green);
+      color: white;
+    }
+
+    .quiz-card,
+    .result-card,
+    .next-card {
+      padding: 24px;
+    }
+
+    .section-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 18px;
+    }
+
+    .section-head p {
+      margin: 6px 0 0;
+      color: var(--muted);
+      font-size: 0.94rem;
+    }
+
+    .lock-badge {
+      flex: 0 0 auto;
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: var(--amber-soft);
+      color: #92400e;
+      border: 1px solid #fde68a;
+      font-size: 0.8rem;
+      font-weight: 800;
+    }
+
+    .lock-badge.unlocked {
+      background: var(--green-soft);
+      color: #166534;
+      border-color: #bbf7d0;
+    }
+
+    .quiz-locked {
+      display: grid;
+      gap: 8px;
+      padding: 18px;
+      border: 1px dashed #cbd5e1;
+      border-radius: var(--radius);
+      background: var(--surface-muted);
+      color: var(--muted);
+    }
+
+    .quiz-locked strong {
+      color: var(--text);
+    }
+
+    fieldset {
+      margin: 0;
+      padding: 0;
+      border: 0;
+    }
+
+    .question {
+      padding: 18px 0;
+      border-top: 1px solid var(--line);
+    }
+
+    .question:first-child {
+      border-top: 0;
+      padding-top: 0;
+    }
+
+    legend {
+      margin-bottom: 12px;
+      color: var(--text);
+      font-weight: 800;
+      line-height: 1.4;
+    }
+
+    .question-type {
+      display: inline-block;
+      margin-bottom: 8px;
+      color: var(--blue);
+      font-size: 0.76rem;
+      font-weight: 850;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+
+    .options {
+      display: grid;
+      gap: 10px;
+    }
+
+    .option {
+      display: grid;
+      grid-template-columns: 20px minmax(0, 1fr);
+      gap: 10px;
+      align-items: start;
+      padding: 12px 13px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--surface);
+      color: #1e293b;
+      cursor: pointer;
+      transition: border-color 160ms ease, background 160ms ease, box-shadow 160ms ease;
+    }
+
+    .option:hover {
+      border-color: #bfdbfe;
+      background: #f8fbff;
+    }
+
+    .option input {
+      width: 17px;
+      height: 17px;
+      margin: 3px 0 0;
+      accent-color: var(--blue);
+    }
+
+    .option span {
+      min-width: 0;
+    }
+
+    .quiz-actions {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      margin-top: 18px;
+      padding-top: 18px;
+      border-top: 1px solid var(--line);
+    }
+
+    .primary-button,
+    .secondary-button {
+      padding: 0 16px;
+      font-weight: 820;
+    }
+
+    .primary-button {
+      background: var(--blue);
+      color: #fff;
+      box-shadow: 0 10px 24px rgba(37, 99, 235, 0.22);
+    }
+
+    .primary-button:hover:not(:disabled) {
+      background: var(--blue-dark);
+    }
+
+    .primary-button.success {
+      background: var(--green);
+      box-shadow: 0 10px 24px rgba(22, 163, 74, 0.18);
+    }
+
+    .secondary-button {
+      background: var(--surface);
+      color: var(--text);
+      border: 1px solid var(--line);
+    }
+
+    .secondary-button:hover:not(:disabled) {
+      border-color: #cbd5e1;
+      background: var(--surface-muted);
+    }
+
+    .helper-text {
+      margin: 0;
+      color: var(--muted);
+      font-size: 0.88rem;
+    }
+
+    .result-card {
+      display: none;
+      border-color: #cbd5e1;
+    }
+
+    .result-card.visible {
+      display: block;
+    }
+
+    .result-summary {
+      display: grid;
+      gap: 6px;
+      margin-bottom: 18px;
+      padding: 16px;
+      border-radius: var(--radius);
+      background: var(--surface-muted);
+      border: 1px solid var(--line);
+    }
+
+    .result-summary.pass {
+      background: var(--green-soft);
+      border-color: #bbf7d0;
+    }
+
+    .result-summary.fail {
+      background: var(--red-soft);
+      border-color: #fecaca;
+    }
+
+    .result-summary strong {
+      font-size: 1.1rem;
+    }
+
+    .result-summary p {
+      margin: 0;
+      color: #334155;
+    }
+
+    .explanations {
+      display: grid;
+      gap: 12px;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .explanation {
+      padding: 14px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--surface);
+    }
+
+    .explanation.correct {
+      border-color: #bbf7d0;
+    }
+
+    .explanation.incorrect {
+      border-color: #fecaca;
+    }
+
+    .explanation strong {
+      display: block;
+      margin-bottom: 5px;
+    }
+
+    .explanation p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 0.92rem;
+    }
+
+    .result-actions {
+      display: flex;
+      justify-content: flex-end;
+      margin-top: 18px;
+    }
+
+    .next-card {
+      display: grid;
+      gap: 12px;
+      background: linear-gradient(180deg, #ffffff, #f8fafc);
+    }
+
+    .next-card p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 0.94rem;
+    }
+
+    .next-card.unlocked {
+      border-color: #bbf7d0;
+      background: #f0fdf4;
+    }
+
+    .next-card .primary-button {
+      width: fit-content;
+    }
+
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+
+    @media (max-width: 900px) {
+      .layout {
+        grid-template-columns: 1fr;
+      }
+
+      .side-panel {
+        position: static;
+        order: -1;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .shell {
+        width: min(100% - 24px, 1180px);
+        padding-top: 12px;
+      }
+
+      .topbar {
+        margin: 0 -12px 18px;
+      }
+
+      .topbar-inner,
+      .video-status-row,
+      .section-head,
+      .quiz-actions {
+        align-items: stretch;
+        flex-direction: column;
+      }
+
+      .course-progress {
+        width: 100%;
+      }
+
+      .lesson-copy,
+      .video-meta,
+      .quiz-card,
+      .result-card,
+      .next-card,
+      .panel {
+        padding: 18px;
+      }
+
+      .demo-button,
+      .primary-button,
+      .secondary-button,
+      .next-card .primary-button {
+        width: 100%;
+      }
+
+      .result-actions {
+        justify-content: stretch;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <header class="topbar" aria-label="Course header">
+      <div class="topbar-inner">
+        <div class="brand">
+          <p class="eyebrow">Startup Fundamentals</p>
+          <h1>How Great Startup Founders Think</h1>
+        </div>
+        <div class="course-progress" aria-label="Course progress">
+          <div class="progress-label">
+            <span>Lesson progress</span>
+            <span id="courseProgressText">0%</span>
+          </div>
+          <div class="progress-track" aria-hidden="true">
+            <div class="progress-fill" id="courseProgressFill"></div>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <main class="layout">
+      <div class="stack">
+        <section class="card lesson-card" aria-labelledby="lessonTitle">
+          <div class="lesson-copy">
+            <p class="eyebrow">Video lesson</p>
+            <h2 id="lessonTitle">How Great Startup Founders Think</h2>
+            <p>Learn the mindset, decision-making style, and execution habits of strong startup founders.</p>
+          </div>
+
+          <div class="video-frame">
+            <div id="player" aria-label="YouTube lesson video"></div>
+          </div>
+
+          <div class="video-meta">
+            <div class="video-status-row">
+              <span class="status-pill warning" id="videoStatus">Video in progress</span>
+              <button class="demo-button" type="button" id="markCompleteButton">Demo only: mark video complete</button>
+            </div>
+            <div>
+              <div class="progress-label">
+                <span>Video progress</span>
+                <span id="videoProgressText">0%</span>
+              </div>
+              <div class="progress-track" aria-hidden="true">
+                <div class="progress-fill" id="videoProgressFill"></div>
+              </div>
+              <p class="progress-note" id="videoProgressNote">
+                Quiz unlocks after the lesson reaches <strong>95%</strong> progress or the video ends.
+              </p>
+            </div>
+          </div>
+        </section>
+
+        <section class="card quiz-card" aria-labelledby="quizTitle">
+          <div class="section-head">
+            <div>
+              <h3 id="quizTitle">Lesson quiz</h3>
+              <p>Answer 5 questions. Passing requires at least 4 correct answers.</p>
+            </div>
+            <span class="lock-badge" id="quizBadge">Locked</span>
+          </div>
+
+          <div class="quiz-locked" id="quizLockedNotice" role="status">
+            <strong>Quiz locked</strong>
+            <span>Complete the video lesson before answering the quiz.</span>
+          </div>
+
+          <form id="quizForm" aria-describedby="quizHelp" hidden>
+            <div id="questions"></div>
+            <div class="quiz-actions">
+              <p class="helper-text" id="quizHelp">You can change answers before submitting.</p>
+              <button class="primary-button" type="submit" id="submitQuizButton">Submit quiz</button>
+            </div>
+          </form>
+        </section>
+
+        <section class="card result-card" id="resultCard" aria-labelledby="resultTitle" aria-live="polite">
+          <h3 id="resultTitle">Quiz result</h3>
+          <div class="result-summary" id="resultSummary"></div>
+          <ul class="explanations" id="explanations"></ul>
+          <div class="result-actions" id="resultActions"></div>
+        </section>
+      </div>
+
+      <aside class="side-panel" aria-label="Lesson status">
+        <section class="card panel" aria-labelledby="statusTitle">
+          <h3 id="statusTitle">Lesson checklist</h3>
+          <ul class="checklist">
+            <li class="check-item" id="videoCheck">
+              <span class="check-icon" aria-hidden="true">1</span>
+              <span>
+                <strong>Watch video</strong>
+                <span id="videoCheckText">Required before quiz</span>
+              </span>
+            </li>
+            <li class="check-item" id="quizCheck">
+              <span class="check-icon" aria-hidden="true">2</span>
+              <span>
+                <strong>Pass quiz</strong>
+                <span id="quizCheckText">Locked until video completion</span>
+              </span>
+            </li>
+            <li class="check-item" id="nextCheck">
+              <span class="check-icon" aria-hidden="true">3</span>
+              <span>
+                <strong>Continue</strong>
+                <span id="nextCheckText">Next lesson locked</span>
+              </span>
+            </li>
+          </ul>
+        </section>
+
+        <section class="card next-card" id="nextLessonCard" aria-labelledby="nextLessonTitle">
+          <span class="status-pill" id="nextStatus">Locked</span>
+          <h3 id="nextLessonTitle">Next lesson placeholder</h3>
+          <p id="nextLessonText">Pass this quiz to unlock the next lesson in Startup Fundamentals.</p>
+          <button class="primary-button" type="button" id="nextLessonButton" disabled>Start next lesson</button>
+        </section>
+      </aside>
+    </main>
+  </div>
+
+  <div class="sr-only" id="liveStatus" aria-live="polite"></div>
+
+  <script>
+    const YOUTUBE_VIDEO_ID = "jnqSezTbEb8";
+    const PASSING_SCORE = 4;
+
+    let videoCompleted = false;
+    let quizUnlocked = false;
+    let quizPassed = false;
+    let nextLessonUnlocked = false;
+    let player = null;
+    let progressTimer = null;
+    let bestVideoProgress = 0;
+
+    const quizQuestions = [
+      {
+        id: "q1",
+        type: "single",
+        prompt: "Networking orqali startap qanday resurslarni jalb qila oladi?",
+        options: [
+          "Faqat moliyaviy investitsiya",
+          "Birinchi mijozlar, investorlar, xodimlar va hamkorlar",
+          "Faqat texnik bilim va kod",
+          "Faqat ijtimoiy media kontent"
+        ],
+        answer: [1],
+        explanation: "Networking startap uchun birinchi mijozlar, investorlar, xodimlar va hamkorlarni topishga yordam beradi."
+      },
+      {
+        id: "q2",
+        type: "single",
+        prompt: "LinkedIn profilingizni 10 soniyada tushunarli qilish uchun eng muhim element qaysi?",
+        options: [
+          "Ko'p sertifikatlar va kurslar ro'yxati",
+          "Aniq sarlavha (headline) va professional foto",
+          "Maksimal darajada to'ldirilgan tajriba bo'limi",
+          "Ko'p ko'nikmalar (skills) qo'shish"
+        ],
+        answer: [1],
+        explanation: "Aniq headline va professional foto profil kim uchun va nima haqida ekanini tez anglatadi."
+      },
+      {
+        id: "q3",
+        type: "single",
+        prompt: "Qaysi networking yondashuvi uzoq muddatda eng ko'p foyda keltiradi?",
+        options: [
+          "Imkon qadar tez pitch qilish va foyda so'rash",
+          "Katta tadbirlarda ko'proq vizitka tarqatish",
+          "Avval boshqalarga qiymat yaratib, keyin ishonch qurish",
+          "Faqat yuqori lavozimli odamlar bilan tanishish"
+        ],
+        answer: [2],
+        explanation: "Uzoq muddatli networking avval qiymat yaratish, so'ng ishonch qurish orqali kuchayadi."
+      },
+      {
+        id: "q4",
+        type: "single",
+        prompt: "Offline tadbirlarda samarali networking uchun to'g'ri tartib qaysi?",
+        options: [
+          "Tadbirda ko'proq odam bilan suhbatlashish, vizitka berish, unutish",
+          "Avval kimlar borligini aniqlash, sifatli suhbat, 24 soat ichida aloqa",
+          "Tadbir tugagandan keyin LinkedIn'da hammani qo'shish",
+          "Faqat o'z sohasidagi odamlar bilan gaplashish"
+        ],
+        answer: [1],
+        explanation: "Tayyorgarlik, sifatli suhbat va tez follow-up offline networking natijasini oshiradi."
+      },
+      {
+        id: "q5",
+        type: "multiple",
+        prompt: "'Connector' bo'lish strategiyasi nima uchun kuchli hisoblanadi? Ikkita to'g'ri javobni tanlang.",
+        options: [
+          "Ko'proq kontakt yig'ishning o'zi asosiy maqsad bo'lgani uchun",
+          "Foydali odamlarni tanishtirish orqali ishonch va obro' yaratilgani uchun",
+          "Qaytib keladigan yangi imkoniyatlar paydo bo'lgani uchun",
+          "LinkedIn algoritmida doimiy yuqori ko'rinish kafolatlangani uchun"
+        ],
+        answer: [1, 2],
+        explanation: "Connector foydali tanishtiruvlar orqali ishonch, obro' va kelajakdagi imkoniyatlarni yaratadi."
+      }
+    ];
+
+    const elements = {
+      courseProgressText: document.getElementById("courseProgressText"),
+      courseProgressFill: document.getElementById("courseProgressFill"),
+      videoProgressText: document.getElementById("videoProgressText"),
+      videoProgressFill: document.getElementById("videoProgressFill"),
+      videoProgressNote: document.getElementById("videoProgressNote"),
+      videoStatus: document.getElementById("videoStatus"),
+      markCompleteButton: document.getElementById("markCompleteButton"),
+      quizBadge: document.getElementById("quizBadge"),
+      quizLockedNotice: document.getElementById("quizLockedNotice"),
+      quizForm: document.getElementById("quizForm"),
+      questions: document.getElementById("questions"),
+      submitQuizButton: document.getElementById("submitQuizButton"),
+      resultCard: document.getElementById("resultCard"),
+      resultSummary: document.getElementById("resultSummary"),
+      explanations: document.getElementById("explanations"),
+      resultActions: document.getElementById("resultActions"),
+      videoCheck: document.getElementById("videoCheck"),
+      quizCheck: document.getElementById("quizCheck"),
+      nextCheck: document.getElementById("nextCheck"),
+      videoCheckText: document.getElementById("videoCheckText"),
+      quizCheckText: document.getElementById("quizCheckText"),
+      nextCheckText: document.getElementById("nextCheckText"),
+      nextLessonCard: document.getElementById("nextLessonCard"),
+      nextStatus: document.getElementById("nextStatus"),
+      nextLessonText: document.getElementById("nextLessonText"),
+      nextLessonButton: document.getElementById("nextLessonButton"),
+      liveStatus: document.getElementById("liveStatus")
+    };
+
+    function loadYouTubeApi() {
+      const tag = document.createElement("script");
+      tag.src = "https://www.youtube.com/iframe_api";
+      document.head.appendChild(tag);
+    }
+
+    function onYouTubeIframeAPIReady() {
+      player = new YT.Player("player", {
+        videoId: YOUTUBE_VIDEO_ID,
+        playerVars: {
+          rel: 0,
+          modestbranding: 1,
+          playsinline: 1
+        },
+        events: {
+          onStateChange: onPlayerStateChange
+        }
+      });
+    }
+
+    function onPlayerStateChange(event) {
+      if (event.data === YT.PlayerState.PLAYING) {
+        startProgressPolling();
+      }
+
+      if (event.data === YT.PlayerState.PAUSED || event.data === YT.PlayerState.BUFFERING) {
+        stopProgressPolling();
+        updateVideoProgressFromPlayer();
+      }
+
+      if (event.data === YT.PlayerState.ENDED) {
+        stopProgressPolling();
+        completeVideo();
+      }
+    }
+
+    function startProgressPolling() {
+      if (progressTimer) return;
+      progressTimer = window.setInterval(updateVideoProgressFromPlayer, 1000);
+    }
+
+    function stopProgressPolling() {
+      if (!progressTimer) return;
+      window.clearInterval(progressTimer);
+      progressTimer = null;
+    }
+
+    function updateVideoProgressFromPlayer() {
+      if (!player || typeof player.getDuration !== "function") return;
+
+      const duration = player.getDuration();
+      const currentTime = player.getCurrentTime();
+      if (!duration || duration <= 0) return;
+
+      const progress = Math.min(100, Math.round((currentTime / duration) * 100));
+      bestVideoProgress = Math.max(bestVideoProgress, progress);
+      renderVideoProgress(bestVideoProgress);
+
+      if (bestVideoProgress >= 95) {
+        completeVideo();
+      }
+    }
+
+    function renderVideoProgress(progress) {
+      elements.videoProgressText.textContent = `${progress}%`;
+      elements.videoProgressFill.style.width = `${progress}%`;
+    }
+
+    function completeVideo() {
+      if (videoCompleted) return;
+
+      videoCompleted = true;
+      bestVideoProgress = Math.max(bestVideoProgress, 100);
+      renderVideoProgress(100);
+      unlockQuiz();
+      updateUI();
+      announce("Video completed. Quiz unlocked.");
+    }
+
+    function unlockQuiz() {
+      if (quizUnlocked) return;
+      quizUnlocked = true;
+      elements.quizForm.hidden = false;
+      elements.quizLockedNotice.hidden = true;
+      elements.submitQuizButton.disabled = false;
+    }
+
+    function renderQuiz() {
+      elements.questions.innerHTML = quizQuestions.map((question, questionIndex) => {
+        const inputType = question.type === "multiple" ? "checkbox" : "radio";
+        const typeLabel = question.type === "multiple" ? "Multiple choice" : "Single choice";
+        const options = question.options.map((option, optionIndex) => {
+          const inputId = `${question.id}-${optionIndex}`;
+          return `
+            <label class="option" for="${inputId}">
+              <input id="${inputId}" name="${question.id}" type="${inputType}" value="${optionIndex}" ${quizUnlocked ? "" : "disabled"}>
+              <span>${option}</span>
+            </label>
+          `;
+        }).join("");
+
+        return `
+          <fieldset class="question">
+            <span class="question-type">${typeLabel}</span>
+            <legend>${questionIndex + 1}. ${question.prompt}</legend>
+            <div class="options">${options}</div>
+          </fieldset>
+        `;
+      }).join("");
+    }
+
+    function getSelectedAnswers(questionId) {
+      return Array.from(document.querySelectorAll(`input[name="${questionId}"]:checked`))
+        .map((input) => Number(input.value))
+        .sort((a, b) => a - b);
+    }
+
+    function arraysMatch(first, second) {
+      return first.length === second.length && first.every((value, index) => value === second[index]);
+    }
+
+    function gradeQuiz() {
+      return quizQuestions.map((question) => {
+        const selected = getSelectedAnswers(question.id);
+        const correct = arraysMatch(selected, [...question.answer].sort((a, b) => a - b));
+        return { question, selected, correct };
+      });
+    }
+
+    function handleQuizSubmit(event) {
+      event.preventDefault();
+
+      if (!quizUnlocked || !videoCompleted) {
+        announce("Quiz is locked until the video is completed.");
+        return;
+      }
+
+      const unanswered = quizQuestions.filter((question) => getSelectedAnswers(question.id).length === 0);
+      if (unanswered.length > 0) {
+        announce("Please answer every quiz question before submitting.");
+        const firstMissing = document.querySelector(`input[name="${unanswered[0].id}"]`);
+        if (firstMissing) firstMissing.focus();
+        return;
+      }
+
+      const results = gradeQuiz();
+      const score = results.filter((result) => result.correct).length;
+      quizPassed = score >= PASSING_SCORE;
+      nextLessonUnlocked = quizPassed;
+
+      renderResults(results, score);
+      updateUI();
+      elements.resultCard.scrollIntoView({ behavior: "smooth", block: "start" });
+      announce(quizPassed ? "Lesson completed. Next lesson unlocked." : "Quiz failed. Review explanations and retake.");
+    }
+
+    function renderResults(results, score) {
+      elements.resultCard.classList.add("visible");
+      elements.resultSummary.className = `result-summary ${quizPassed ? "pass" : "fail"}`;
+      elements.resultSummary.innerHTML = `
+        <strong>${quizPassed ? "Lesson completed" : "Retake required"}</strong>
+        <p>You scored ${score} out of ${quizQuestions.length}. Passing requires ${PASSING_SCORE} correct answers.</p>
+      `;
+
+      elements.explanations.innerHTML = results.map((result, index) => {
+        const correctAnswers = result.question.answer.map((answerIndex) => result.question.options[answerIndex]).join("; ");
+        const selectedAnswers = result.selected.length
+          ? result.selected.map((answerIndex) => result.question.options[answerIndex]).join("; ")
+          : "No answer selected";
+
+        return `
+          <li class="explanation ${result.correct ? "correct" : "incorrect"}">
+            <strong>${index + 1}. ${result.correct ? "Correct" : "Needs review"}</strong>
+            <p>Your answer: ${selectedAnswers}</p>
+            <p>Correct answer: ${correctAnswers}</p>
+            <p>${result.question.explanation}</p>
+          </li>
+        `;
+      }).join("");
+
+      elements.resultActions.innerHTML = quizPassed
+        ? `<button class="primary-button success" type="button" onclick="document.getElementById('nextLessonCard').scrollIntoView({ behavior: 'smooth', block: 'center' })">Continue</button>`
+        : `<button class="secondary-button" type="button" id="retakeButton">Retake quiz</button>`;
+
+      const retakeButton = document.getElementById("retakeButton");
+      if (retakeButton) {
+        retakeButton.addEventListener("click", retakeQuiz);
+      }
+    }
+
+    function retakeQuiz() {
+      elements.quizForm.reset();
+      elements.resultCard.classList.remove("visible");
+      elements.resultSummary.innerHTML = "";
+      elements.explanations.innerHTML = "";
+      elements.resultActions.innerHTML = "";
+      quizPassed = false;
+      nextLessonUnlocked = false;
+      updateUI();
+      elements.quizForm.scrollIntoView({ behavior: "smooth", block: "start" });
+      announce("Quiz reset. Video completion remains saved.");
+    }
+
+    function updateUI() {
+      const progress = nextLessonUnlocked ? 100 : quizUnlocked ? 50 : 0;
+
+      elements.courseProgressText.textContent = `${progress}%`;
+      elements.courseProgressFill.style.width = `${progress}%`;
+
+      elements.videoStatus.textContent = videoCompleted ? "Video completed" : "Video in progress";
+      elements.videoStatus.className = `status-pill ${videoCompleted ? "success" : "warning"}`;
+      elements.videoProgressNote.innerHTML = videoCompleted
+        ? "Video complete. The quiz is now unlocked."
+        : "Quiz unlocks after the lesson reaches <strong>95%</strong> progress or the video ends.";
+
+      elements.quizBadge.textContent = quizUnlocked ? "Unlocked" : "Locked";
+      elements.quizBadge.className = `lock-badge ${quizUnlocked ? "unlocked" : ""}`;
+      elements.quizLockedNotice.hidden = quizUnlocked;
+      elements.quizForm.hidden = !quizUnlocked;
+      document.querySelectorAll("#quizForm input").forEach((input) => {
+        input.disabled = !quizUnlocked || quizPassed;
+      });
+      elements.submitQuizButton.disabled = !quizUnlocked || quizPassed;
+
+      elements.videoCheck.classList.toggle("complete", videoCompleted);
+      elements.quizCheck.classList.toggle("complete", quizPassed);
+      elements.nextCheck.classList.toggle("complete", nextLessonUnlocked);
+
+      elements.videoCheck.querySelector(".check-icon").textContent = videoCompleted ? "OK" : "1";
+      elements.quizCheck.querySelector(".check-icon").textContent = quizPassed ? "OK" : "2";
+      elements.nextCheck.querySelector(".check-icon").textContent = nextLessonUnlocked ? "OK" : "3";
+
+      elements.videoCheckText.textContent = videoCompleted ? "Completed" : "Required before quiz";
+      elements.quizCheckText.textContent = quizPassed ? "Passed" : quizUnlocked ? "Ready to take" : "Locked until video completion";
+      elements.nextCheckText.textContent = nextLessonUnlocked ? "Unlocked" : "Next lesson locked";
+
+      elements.nextLessonCard.classList.toggle("unlocked", nextLessonUnlocked);
+      elements.nextStatus.textContent = nextLessonUnlocked ? "Unlocked" : "Locked";
+      elements.nextStatus.className = `status-pill ${nextLessonUnlocked ? "success" : ""}`;
+      elements.nextLessonText.textContent = nextLessonUnlocked
+        ? "Lesson 2 is available. This placeholder shows the progression gate working."
+        : "Pass this quiz to unlock the next lesson in Startup Fundamentals.";
+      elements.nextLessonButton.disabled = !nextLessonUnlocked;
+    }
+
+    function announce(message) {
+      elements.liveStatus.textContent = message;
+    }
+
+    elements.markCompleteButton.addEventListener("click", completeVideo);
+    elements.quizForm.addEventListener("submit", handleQuizSubmit);
+    elements.nextLessonButton.addEventListener("click", () => {
+      if (!nextLessonUnlocked) return;
+      announce("Next lesson placeholder selected.");
+    });
+
+    renderQuiz();
+    updateUI();
+    loadYouTubeApi();
+  </script>
+</body>
+</html>
