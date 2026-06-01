@@ -12,7 +12,7 @@ export default function AdminPage() {
   const [draft, setDraft] = useState<LessonBundle>(demoLessonBundle);
   const [lessons, setLessons] = useState<Lesson[]>([demoLessonBundle.lesson]);
   const [message, setMessage] = useState("");
-  const [activeEditorTab, setActiveEditorTab] = useState<"lesson" | "quiz">("lesson");
+  const [activeEditorTab, setActiveEditorTab] = useState<"lesson" | "quiz" | "preview">("lesson");
   const isAdmin = profile?.role === "admin";
   const isUnsavedLesson = !lessons.some((lesson) => lesson.id === draft.lesson.id);
 
@@ -270,7 +270,11 @@ export default function AdminPage() {
       lesson_order: draft.lesson.lesson_order,
       passing_score: draft.lesson.passing_score,
       is_published: draft.lesson.is_published
-    };
+    } as Partial<Lesson>;
+
+    if (draft.lesson.archived_at !== undefined) {
+      lessonPayload.archived_at = draft.lesson.archived_at;
+    }
 
     const { error: lessonError } = await supabase.from("lessons").upsert(lessonPayload);
     if (lessonError) {
@@ -302,6 +306,40 @@ export default function AdminPage() {
     }
 
     setMessage("Content saved.");
+  }
+
+  async function toggleArchiveLesson() {
+    const nextArchivedAt = draft.lesson.archived_at ? null : new Date().toISOString();
+    const nextLesson = { ...draft.lesson, archived_at: nextArchivedAt };
+
+    setDraft((current) => ({
+      ...current,
+      lesson: nextLesson
+    }));
+
+    if (!supabase) {
+      setLessons((current) => current.map((lesson) => (lesson.id === nextLesson.id ? nextLesson : lesson)));
+      setMessage(nextArchivedAt ? "Lesson archived in demo mode." : "Lesson restored in demo mode.");
+      return;
+    }
+
+    if (isSupabaseConfigured && !isAdmin) {
+      setMessage("Admin access is required to archive lessons.");
+      return;
+    }
+
+    const { error } = await supabase.from("lessons").update({ archived_at: nextArchivedAt }).eq("id", draft.lesson.id);
+    if (error) {
+      setMessage(error.message);
+      return;
+    }
+
+    const { data: refreshedLessons } = await supabase.from("lessons").select("*").eq("course_id", COURSE_ID).order("lesson_order");
+    if (refreshedLessons) {
+      setLessons(refreshedLessons as Lesson[]);
+    }
+
+    setMessage(nextArchivedAt ? "Lesson archived. It is hidden from learners." : "Lesson restored.");
   }
 
   return (
@@ -357,7 +395,7 @@ export default function AdminPage() {
                     <strong>
                       {lesson.lesson_order}. {lesson.title}
                     </strong>
-                    <span>{lesson.is_published ? "Published" : "Draft"}</span>
+                    <span>{getLessonStatus(lesson)}</span>
                   </span>
                 </button>
               ))}
@@ -413,6 +451,14 @@ export default function AdminPage() {
                   onClick={() => setActiveEditorTab("quiz")}
                 >
                   Quiz
+                </button>
+                <button
+                  aria-pressed={activeEditorTab === "preview"}
+                  className={activeEditorTab === "preview" ? "active" : ""}
+                  type="button"
+                  onClick={() => setActiveEditorTab("preview")}
+                >
+                  Preview
                 </button>
               </div>
 
@@ -588,11 +634,68 @@ export default function AdminPage() {
               </div>
               )}
 
+              {activeEditorTab === "preview" && (
+                <div className="form-section">
+                  <div className="section-heading">
+                    <div>
+                      <h3>Learner preview</h3>
+                      <p className="muted">A quick check of what this lesson will feel like before publishing.</p>
+                    </div>
+                    <span className={`pill ${draft.lesson.archived_at ? "warning" : draft.lesson.is_published ? "success" : ""}`}>
+                      {getLessonStatus(draft.lesson)}
+                    </span>
+                  </div>
+
+                  <div className="preview-panel">
+                    <div>
+                      <p className="eyebrow">Startup Fundamentals</p>
+                      <h2>{draft.lesson.title}</h2>
+                      <p className="muted">{draft.lesson.description}</p>
+                    </div>
+                    <div className="preview-video" aria-label="Video preview">
+                      {draft.lesson.youtube_video_id ? (
+                        <iframe
+                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                          allowFullScreen
+                          src={`https://www.youtube.com/embed/${draft.lesson.youtube_video_id}`}
+                          title={`${draft.lesson.title} video preview`}
+                        />
+                      ) : (
+                        <span>No YouTube video ID set</span>
+                      )}
+                    </div>
+                    <div className="preview-quiz">
+                      <div className="row">
+                        <h3>Quiz</h3>
+                        <span className="pill">{draft.questions.length} questions</span>
+                      </div>
+                      <ol>
+                        {draft.questions.map((question) => (
+                          <li key={question.id}>
+                            <strong>{question.prompt}</strong>
+                            <span>{question.choice_type === "multiple" ? "Multiple choice" : "Single choice"}</span>
+                          </li>
+                        ))}
+                      </ol>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               <div className="form-actions">
                 <div className="form-actions-meta">
-                  <strong>{activeEditorTab === "lesson" ? "Lesson setup" : "Quiz setup"}</strong>
-                  <span>{activeEditorTab === "lesson" ? "Editing lesson details" : `${draft.questions.length} question${draft.questions.length === 1 ? "" : "s"}`}</span>
+                  <strong>{activeEditorTab === "lesson" ? "Lesson setup" : activeEditorTab === "quiz" ? "Quiz setup" : "Preview"}</strong>
+                  <span>
+                    {activeEditorTab === "lesson"
+                      ? "Editing lesson details"
+                      : activeEditorTab === "quiz"
+                        ? `${draft.questions.length} question${draft.questions.length === 1 ? "" : "s"}`
+                        : getLessonStatus(draft.lesson)}
+                  </span>
                 </div>
+                <button className={draft.lesson.archived_at ? "secondary" : "danger"} type="button" onClick={toggleArchiveLesson}>
+                  {draft.lesson.archived_at ? "Restore lesson" : "Archive lesson"}
+                </button>
                 <button className="secondary" type="button" onClick={createLessonDraft}>
                   New lesson
                 </button>
@@ -620,4 +723,9 @@ function formatCorrectAnswerSummary(question: QuizQuestion) {
     .filter(Boolean);
 
   return labels.length ? labels.join(", ") : "Choose an answer";
+}
+
+function getLessonStatus(lesson: Lesson) {
+  if (lesson.archived_at) return "Archived";
+  return lesson.is_published ? "Published" : "Draft";
 }

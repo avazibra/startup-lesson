@@ -2,15 +2,18 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { DEFAULT_LESSON_ID } from "@/lib/constants";
-import { demoAttempts, demoProfile, emptyDemoProgress } from "@/lib/demo-data";
+import { COURSE_ID } from "@/lib/constants";
+import { demoAttempts, demoLessons, demoProfile } from "@/lib/demo-data";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
-import type { LessonProgress, Profile, QuizAttempt } from "@/lib/types";
+import type { LessonProgress, LessonWithProgress, Profile, QuizAttempt } from "@/lib/types";
 
 export default function ProfilePage() {
   const [profile, setProfile] = useState<Profile | null>(isSupabaseConfigured ? null : demoProfile);
-  const [progress, setProgress] = useState<LessonProgress>(emptyDemoProgress);
+  const [lessons, setLessons] = useState<LessonWithProgress[]>(isSupabaseConfigured ? [] : demoLessons);
   const [attempts, setAttempts] = useState<QuizAttempt[]>(isSupabaseConfigured ? [] : demoAttempts);
+  const completedLessons = lessons.filter((lesson) => lesson.progress?.quiz_passed).length;
+  const progressPercent = lessons.length ? Math.round((completedLessons / lessons.length) * 100) : 0;
+  const lessonTitleById = new Map(lessons.map((lesson) => [lesson.id, lesson.title]));
 
   useEffect(() => {
     if (!supabase) return;
@@ -26,7 +29,7 @@ export default function ProfilePage() {
         void loadUserData(user.id, user.email ?? null);
       } else {
         setProfile(null);
-        setProgress(emptyDemoProgress);
+        setLessons([]);
         setAttempts([]);
       }
     });
@@ -37,14 +40,14 @@ export default function ProfilePage() {
   async function loadUserData(userId: string, fallbackEmail: string | null) {
     if (!supabase) return;
 
-    const [{ data: userProfile }, { data: userProgress }, { data: userAttempts }] = await Promise.all([
+    const [{ data: userProfile }, { data: courseLessons }, { data: userProgress }, { data: userAttempts }] = await Promise.all([
       supabase.from("profiles").select("*").eq("id", userId).single(),
-      supabase.from("lesson_progress").select("*").eq("user_id", userId).eq("lesson_id", DEFAULT_LESSON_ID).maybeSingle(),
+      supabase.from("lessons").select("*").eq("course_id", COURSE_ID).eq("is_published", true).order("lesson_order"),
+      supabase.from("lesson_progress").select("*").eq("user_id", userId),
       supabase
         .from("quiz_attempts")
         .select("*")
         .eq("user_id", userId)
-        .eq("lesson_id", DEFAULT_LESSON_ID)
         .order("created_at", { ascending: false })
     ]);
 
@@ -56,12 +59,15 @@ export default function ProfilePage() {
         role: "student"
       }
     );
-    setProgress(
-      userProgress ?? {
-        ...emptyDemoProgress,
-        user_id: userId,
-        lesson_id: DEFAULT_LESSON_ID
-      }
+
+    const progressByLesson = new Map((userProgress as LessonProgress[] | null)?.map((item) => [item.lesson_id, item]) ?? []);
+    setLessons(
+      ((courseLessons as LessonWithProgress[] | null) ?? [])
+        .filter((lesson) => !lesson.archived_at)
+        .map((lesson) => ({
+          ...lesson,
+          progress: progressByLesson.get(lesson.id) ?? null
+        }))
     );
     setAttempts((userAttempts as QuizAttempt[]) ?? []);
   }
@@ -95,11 +101,41 @@ export default function ProfilePage() {
           <p className="eyebrow">Learner profile</p>
           <h2>{profile?.full_name ?? "Not signed in"}</h2>
           <p className="muted">{profile?.email ?? "Sign in to save progress across devices."}</p>
-          <div className="checklist">
-            <ChecklistItem done={progress.video_completed} number="1" title="Video" text={`${progress.video_progress_percent}% watched`} />
-            <ChecklistItem done={progress.quiz_passed} number="2" title="Quiz" text={progress.quiz_passed ? "Passed" : "Not passed yet"} />
-            <ChecklistItem done={Boolean(progress.completed_at)} number="3" title="Completion" text={progress.completed_at ?? "Incomplete"} />
+          <div className="profile-meter">
+            <div className="progress-label">
+              <span>Course progress</span>
+              <strong>{progressPercent}%</strong>
+            </div>
+            <div className="progress-track" aria-label={`Course progress ${progressPercent}%`}>
+              <div className="progress-fill" style={{ width: `${progressPercent}%` }} />
+            </div>
+            <p className="muted">
+              {completedLessons} of {lessons.length} lessons completed
+            </p>
           </div>
+        </section>
+
+        <section className="card card-pad">
+          <h3>Lesson progress</h3>
+          {lessons.length ? (
+            <ul className="history-list" style={{ marginTop: 16 }}>
+              {lessons.map((lesson, index) => (
+                <li className="history-item lesson-history-item" key={lesson.id}>
+                  <div>
+                    <strong>
+                      {lesson.lesson_order}. {lesson.title}
+                    </strong>
+                    <p className="muted">{lesson.progress?.video_progress_percent ?? 0}% watched</p>
+                  </div>
+                  <span className={`pill ${lesson.progress?.quiz_passed ? "success" : ""}`}>
+                    {lesson.progress?.quiz_passed ? "Completed" : index === 0 || lessons[index - 1]?.progress?.quiz_passed ? "In progress" : "Locked"}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="muted">No published lessons yet.</p>
+          )}
         </section>
 
         <section className="card card-pad">
@@ -108,6 +144,7 @@ export default function ProfilePage() {
             <ul className="history-list" style={{ marginTop: 16 }}>
               {attempts.map((attempt, index) => (
                 <li className="history-item" key={attempt.id ?? `${attempt.created_at}-${index}`}>
+                  <p className="eyebrow">{lessonTitleById.get(attempt.lesson_id) ?? "Lesson"}</p>
                   <strong>
                     {attempt.score}/{attempt.total_questions} - {attempt.passed ? "Passed" : "Failed"}
                   </strong>
@@ -121,19 +158,5 @@ export default function ProfilePage() {
         </section>
       </main>
     </div>
-  );
-}
-
-function ChecklistItem({ done, number, title, text }: { done: boolean; number: string; title: string; text: string }) {
-  return (
-    <li className={`check-item ${done ? "complete" : ""}`}>
-      <span className="check-icon" aria-hidden="true">
-        {done ? "OK" : number}
-      </span>
-      <span>
-        <strong>{title}</strong>
-        <span>{text}</span>
-      </span>
-    </li>
   );
 }

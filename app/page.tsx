@@ -148,9 +148,9 @@ export default function Home() {
 
     const [{ data: course }, { data: lesson }, { data: questions }, { data: courseLessons }] = await Promise.all([
       supabase.from("courses").select("*").eq("id", COURSE_ID).single(),
-      supabase.from("lessons").select("*").eq("id", targetLessonId).single(),
+      supabase.from("lessons").select("*").eq("id", targetLessonId).eq("is_published", true).single(),
       supabase.from("quiz_questions").select("*").eq("lesson_id", targetLessonId).order("question_order"),
-      supabase.from("lessons").select("*").eq("course_id", COURSE_ID).order("lesson_order")
+      supabase.from("lessons").select("*").eq("course_id", COURSE_ID).eq("is_published", true).order("lesson_order")
     ]);
 
     if (course && lesson && questions) {
@@ -162,7 +162,7 @@ export default function Home() {
     }
 
     if (courseLessons) {
-      await loadLessonList(courseLessons as LessonWithProgress[]);
+      await loadLessonList((courseLessons as LessonWithProgress[]).filter((courseLesson) => !courseLesson.archived_at));
     }
   }
 
@@ -198,8 +198,13 @@ export default function Home() {
     setAttempts((userAttempts as QuizAttempt[]) ?? []);
 
     if (supabase) {
-      const { data: courseLessons } = await supabase.from("lessons").select("*").eq("course_id", COURSE_ID).order("lesson_order");
-      if (courseLessons) await loadLessonList(courseLessons as LessonWithProgress[], userId);
+      const { data: courseLessons } = await supabase
+        .from("lessons")
+        .select("*")
+        .eq("course_id", COURSE_ID)
+        .eq("is_published", true)
+        .order("lesson_order");
+      if (courseLessons) await loadLessonList((courseLessons as LessonWithProgress[]).filter((courseLesson) => !courseLesson.archived_at), userId);
     }
   }
 

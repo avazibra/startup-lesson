@@ -27,6 +27,9 @@ create table if not exists public.lessons (
   created_at timestamptz not null default now()
 );
 
+alter table public.lessons
+  add column if not exists archived_at timestamptz;
+
 create table if not exists public.quiz_questions (
   id uuid primary key default gen_random_uuid(),
   lesson_id uuid not null references public.lessons(id) on delete cascade,
@@ -130,7 +133,7 @@ create policy "courses_admin_write"
 drop policy if exists "lessons_public_read_published" on public.lessons;
 create policy "lessons_public_read_published"
   on public.lessons for select
-  using (is_published or public.is_admin());
+  using ((is_published and archived_at is null) or public.is_admin());
 
 drop policy if exists "lessons_admin_write" on public.lessons;
 create policy "lessons_admin_write"
@@ -145,7 +148,7 @@ create policy "questions_public_read_published_lesson"
     exists (
       select 1 from public.lessons
       where lessons.id = quiz_questions.lesson_id
-      and (lessons.is_published or public.is_admin())
+      and ((lessons.is_published and lessons.archived_at is null) or public.is_admin())
     )
   );
 

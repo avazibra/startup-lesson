@@ -531,7 +531,7 @@ fieldset {
 
 .admin-subtabs {
   display: inline-grid;
-  grid-template-columns: repeat(2, minmax(110px, 1fr));
+  grid-template-columns: repeat(3, minmax(100px, 1fr));
   gap: 4px;
   width: fit-content;
   margin: -4px 24px 0;
@@ -643,6 +643,58 @@ fieldset {
   font-size: 0.84rem;
 }
 
+.preview-panel {
+  display: grid;
+  gap: 18px;
+}
+
+.preview-panel h2 {
+  font-size: clamp(1.45rem, 3vw, 2rem);
+  line-height: 1.15;
+}
+
+.preview-video {
+  position: relative;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  aspect-ratio: 16 / 9;
+  border-radius: var(--radius);
+  background: #0f172a;
+  color: white;
+}
+
+.preview-video iframe {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+
+.preview-quiz {
+  display: grid;
+  gap: 14px;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: white;
+}
+
+.preview-quiz ol {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding-left: 20px;
+}
+
+.preview-quiz li span {
+  display: block;
+  margin-top: 2px;
+  color: var(--muted);
+  font-size: 0.84rem;
+}
+
 .form-actions {
   position: sticky;
   bottom: 16px;
@@ -716,6 +768,19 @@ fieldset {
   border: 1px solid var(--line);
   border-radius: var(--radius);
   background: var(--surface-muted);
+}
+
+.profile-meter {
+  display: grid;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.lesson-history-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
 }
 
 .lesson-list {
@@ -800,7 +865,8 @@ fieldset {
   .top-actions,
   .editor-hero,
   .section-heading,
-  .form-actions {
+  .form-actions,
+  .lesson-history-item {
     align-items: stretch;
     flex-direction: column;
   }
