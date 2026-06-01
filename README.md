@@ -12,6 +12,12 @@ This is the next version of the startup academy lesson prototype. It is now a Ne
 
 The app still works in demo mode when Supabase environment variables are missing.
 
+## Routes
+
+- `/` - learner lesson flow
+- `/profile` - learner progress and quiz attempt history
+- `/admin` - admin-only content editor
+
 ## Local Setup
 
 ```bash

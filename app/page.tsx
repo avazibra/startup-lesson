@@ -1,7 +1,9 @@
 "use client";
 
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
 import { demoAttempts, demoLessonBundle, demoProfile, emptyDemoProgress } from "@/lib/demo-data";
+import { COURSE_ID, LESSON_ID } from "@/lib/constants";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 import type { Lesson, LessonBundle, LessonProgress, Profile, QuizAttempt, QuizQuestion } from "@/lib/types";
 
@@ -33,18 +35,13 @@ type YouTubePlayer = {
   destroy?: () => void;
 };
 
-type Tab = "lesson" | "admin" | "profile";
 type QuizResult = {
   question: QuizQuestion;
   selected: number[];
   correct: boolean;
 };
 
-const lessonId = "22222222-2222-2222-2222-222222222222";
-const courseId = "11111111-1111-1111-1111-111111111111";
-
 export default function Home() {
-  const [activeTab, setActiveTab] = useState<Tab>("lesson");
   const [bundle, setBundle] = useState<LessonBundle>(demoLessonBundle);
   const [profile, setProfile] = useState<Profile | null>(isSupabaseConfigured ? null : demoProfile);
   const [progress, setProgress] = useState<LessonProgress>(emptyDemoProgress);
@@ -55,7 +52,6 @@ export default function Home() {
   const [password, setPassword] = useState("");
   const [authMessage, setAuthMessage] = useState("");
   const [statusMessage, setStatusMessage] = useState("");
-  const [adminDraft, setAdminDraft] = useState<LessonBundle>(demoLessonBundle);
   const [playerReadyToken, setPlayerReadyToken] = useState(0);
   const playerRef = useRef<YouTubePlayer | null>(null);
   const timerRef = useRef<number | null>(null);
@@ -67,10 +63,6 @@ export default function Home() {
   const lessonProgressPercent = nextLessonUnlocked ? 100 : quizUnlocked ? 50 : 0;
   const isAdmin = profile?.role === "admin";
   const modeLabel = isSupabaseConfigured ? "Supabase mode" : "Demo mode";
-
-  useEffect(() => {
-    setAdminDraft(bundle);
-  }, [bundle]);
 
   useEffect(() => {
     if (!supabase) return;
@@ -113,7 +105,7 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
-    if (!window.YT || activeTab !== "lesson") return;
+    if (!window.YT) return;
 
     playerRef.current?.destroy?.();
     playerRef.current = new window.YT.Player("player", {
@@ -133,15 +125,15 @@ export default function Home() {
       playerRef.current?.destroy?.();
       playerRef.current = null;
     };
-  }, [playerReadyToken, activeTab, bundle.lesson.youtube_video_id]);
+  }, [playerReadyToken, bundle.lesson.youtube_video_id]);
 
   async function loadContent() {
     if (!supabase) return;
 
     const [{ data: course }, { data: lesson }, { data: questions }] = await Promise.all([
-      supabase.from("courses").select("*").eq("id", courseId).single(),
-      supabase.from("lessons").select("*").eq("id", lessonId).single(),
-      supabase.from("quiz_questions").select("*").eq("lesson_id", lessonId).order("question_order")
+      supabase.from("courses").select("*").eq("id", COURSE_ID).single(),
+      supabase.from("lessons").select("*").eq("id", LESSON_ID).single(),
+      supabase.from("quiz_questions").select("*").eq("lesson_id", LESSON_ID).order("question_order")
     ]);
 
     if (course && lesson && questions) {
@@ -158,12 +150,12 @@ export default function Home() {
 
     const [{ data: userProfile }, { data: userProgress }, { data: userAttempts }] = await Promise.all([
       supabase.from("profiles").select("*").eq("id", userId).single(),
-      supabase.from("lesson_progress").select("*").eq("user_id", userId).eq("lesson_id", lessonId).maybeSingle(),
+      supabase.from("lesson_progress").select("*").eq("user_id", userId).eq("lesson_id", LESSON_ID).maybeSingle(),
       supabase
         .from("quiz_attempts")
         .select("*")
         .eq("user_id", userId)
-        .eq("lesson_id", lessonId)
+        .eq("lesson_id", LESSON_ID)
         .order("created_at", { ascending: false })
     ]);
 
@@ -179,7 +171,7 @@ export default function Home() {
       userProgress ?? {
         ...emptyDemoProgress,
         user_id: userId,
-        lesson_id: lessonId
+        lesson_id: LESSON_ID
       }
     );
     setAttempts((userAttempts as QuizAttempt[]) ?? []);
@@ -367,65 +359,6 @@ export default function Home() {
     setStatusMessage("Quiz reset. Video completion is still saved.");
   }
 
-  async function saveAdminContent(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setBundle(adminDraft);
-    setStatusMessage("Content saved.");
-
-    if (!supabase || !isAdmin) return;
-
-    await supabase.from("courses").upsert(adminDraft.course);
-    await supabase.from("lessons").upsert(adminDraft.lesson);
-
-    for (const question of adminDraft.questions) {
-      await supabase.from("quiz_questions").upsert(question);
-    }
-  }
-
-  function updateDraftLesson(patch: Partial<Lesson>) {
-    setAdminDraft((current) => ({
-      ...current,
-      lesson: { ...current.lesson, ...patch }
-    }));
-  }
-
-  function updateDraftQuestion(index: number, patch: Partial<QuizQuestion>) {
-    setAdminDraft((current) => ({
-      ...current,
-      questions: current.questions.map((question, questionIndex) =>
-        questionIndex === index ? { ...question, ...patch } : question
-      )
-    }));
-  }
-
-  function addDraftQuestion() {
-    setAdminDraft((current) => ({
-      ...current,
-      questions: [
-        ...current.questions,
-        {
-          id: crypto.randomUUID(),
-          lesson_id: current.lesson.id,
-          prompt: "New question",
-          choice_type: "single",
-          options: ["Option A", "Option B", "Option C", "Option D"],
-          correct_answers: [0],
-          explanation: "Explain why the correct answer is right.",
-          question_order: current.questions.length + 1
-        }
-      ]
-    }));
-  }
-
-  function removeDraftQuestion(index: number) {
-    setAdminDraft((current) => ({
-      ...current,
-      questions: current.questions
-        .filter((_question, questionIndex) => questionIndex !== index)
-        .map((question, questionIndex) => ({ ...question, question_order: questionIndex + 1 }))
-    }));
-  }
-
   const resultSummary = useMemo(() => {
     if (!quizResult) return null;
     const score = quizResult.filter((result) => result.correct).length;
@@ -444,104 +377,89 @@ export default function Home() {
           <div className="top-actions">
             <span className={`pill ${isSupabaseConfigured ? "success" : "warning"}`}>{modeLabel}</span>
             <nav className="tabs" aria-label="App sections">
-              {(["lesson", "admin", "profile"] as Tab[]).map((tab) => (
-                <button
-                  className={`tab ${activeTab === tab ? "active" : ""}`}
-                  key={tab}
-                  type="button"
-                  onClick={() => setActiveTab(tab)}
-                >
-                  {tab[0].toUpperCase() + tab.slice(1)}
-                </button>
-              ))}
+              <Link className="tab active" href="/">
+                Lesson
+              </Link>
+              {isAdmin && (
+                <Link className="tab" href="/admin">
+                  Admin
+                </Link>
+              )}
+              <Link className="tab" href="/profile">
+                Profile
+              </Link>
             </nav>
           </div>
         </div>
       </header>
 
-      {activeTab === "lesson" && (
-        <main className="grid">
-          <section className="stack">
-            <article className="card">
-              <div className="hero-copy">
-                <p className="eyebrow">Video lesson</p>
-                <h2>{bundle.lesson.title}</h2>
-                <p>{bundle.lesson.description}</p>
+      <main className="grid">
+        <section className="stack">
+          <article className="card">
+            <div className="hero-copy">
+              <p className="eyebrow">Video lesson</p>
+              <h2>{bundle.lesson.title}</h2>
+              <p>{bundle.lesson.description}</p>
+            </div>
+            <div className="video-frame">
+              <div id="player" aria-label="YouTube lesson video" />
+            </div>
+            <div className="video-meta">
+              <div className="row">
+                <span className={`pill ${videoCompleted ? "success" : "warning"}`}>
+                  {videoCompleted ? "Video completed" : "Video in progress"}
+                </span>
+                <button className="secondary" type="button" onClick={completeVideo}>
+                  Demo only: mark video complete
+                </button>
               </div>
-              <div className="video-frame">
-                <div id="player" aria-label="YouTube lesson video" />
-              </div>
-              <div className="video-meta">
-                <div className="row">
-                  <span className={`pill ${videoCompleted ? "success" : "warning"}`}>
-                    {videoCompleted ? "Video completed" : "Video in progress"}
-                  </span>
-                  <button className="secondary" type="button" onClick={completeVideo}>
-                    Demo only: mark video complete
-                  </button>
+              <div>
+                <div className="progress-label">
+                  <span>Video progress</span>
+                  <span>{progress.video_progress_percent}%</span>
                 </div>
-                <div>
-                  <div className="progress-label">
-                    <span>Video progress</span>
-                    <span>{progress.video_progress_percent}%</span>
-                  </div>
-                  <div className="progress-track" aria-hidden="true">
-                    <div className="progress-fill" style={{ width: `${progress.video_progress_percent}%` }} />
-                  </div>
+                <div className="progress-track" aria-hidden="true">
+                  <div className="progress-fill" style={{ width: `${progress.video_progress_percent}%` }} />
                 </div>
               </div>
-            </article>
+            </div>
+          </article>
 
-            <QuizSection
-              questions={bundle.questions}
-              passingScore={bundle.lesson.passing_score}
-              quizUnlocked={quizUnlocked}
-              quizPassed={quizPassed}
-              selectedAnswers={selectedAnswers}
-              quizResult={quizResult}
-              resultSummary={resultSummary}
-              onToggleAnswer={toggleAnswer}
-              onSubmit={submitQuiz}
-              onRetake={retakeQuiz}
-            />
-          </section>
+          <QuizSection
+            questions={bundle.questions}
+            passingScore={bundle.lesson.passing_score}
+            quizUnlocked={quizUnlocked}
+            quizPassed={quizPassed}
+            selectedAnswers={selectedAnswers}
+            quizResult={quizResult}
+            resultSummary={resultSummary}
+            onToggleAnswer={toggleAnswer}
+            onSubmit={submitQuiz}
+            onRetake={retakeQuiz}
+          />
+        </section>
 
-          <aside className="stack">
-            <StatusCard
-              lessonProgressPercent={lessonProgressPercent}
-              videoCompleted={videoCompleted}
-              quizUnlocked={quizUnlocked}
-              quizPassed={quizPassed}
-              nextLessonUnlocked={nextLessonUnlocked}
-            />
-            <AuthCard
-              profile={profile}
-              email={email}
-              password={password}
-              authMessage={authMessage}
-              onEmailChange={setEmail}
-              onPasswordChange={setPassword}
-              onSignIn={signInWithPassword}
-              onSignUp={signUpWithPassword}
-              onSignOut={signOut}
-            />
-          </aside>
-        </main>
-      )}
-
-      {activeTab === "admin" && (
-        <AdminPanel
-          draft={adminDraft}
-          isAdmin={isAdmin}
-          onSave={saveAdminContent}
-          onLessonChange={updateDraftLesson}
-          onQuestionChange={updateDraftQuestion}
-          onAddQuestion={addDraftQuestion}
-          onRemoveQuestion={removeDraftQuestion}
-        />
-      )}
-
-      {activeTab === "profile" && <ProfilePanel profile={profile} progress={progress} attempts={attempts} />}
+        <aside className="stack">
+          <StatusCard
+            lessonProgressPercent={lessonProgressPercent}
+            videoCompleted={videoCompleted}
+            quizUnlocked={quizUnlocked}
+            quizPassed={quizPassed}
+            nextLessonUnlocked={nextLessonUnlocked}
+          />
+          <AuthCard
+            profile={profile}
+            email={email}
+            password={password}
+            authMessage={authMessage}
+            onEmailChange={setEmail}
+            onPasswordChange={setPassword}
+            onSignIn={signInWithPassword}
+            onSignUp={signUpWithPassword}
+            onSignOut={signOut}
+          />
+        </aside>
+      </main>
 
       <div className="sr-only" aria-live="polite">
         {statusMessage}
