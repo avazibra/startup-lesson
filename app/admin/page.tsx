@@ -13,6 +13,7 @@ export default function AdminPage() {
   const [lessons, setLessons] = useState<Lesson[]>([demoLessonBundle.lesson]);
   const [message, setMessage] = useState("");
   const isAdmin = profile?.role === "admin";
+  const isUnsavedLesson = !lessons.some((lesson) => lesson.id === draft.lesson.id);
 
   useEffect(() => {
     if (!supabase) return;
@@ -238,8 +239,8 @@ export default function AdminPage() {
         </div>
       </header>
 
-      <main className="grid">
-        <aside className="stack">
+      <main className="admin-grid">
+        <aside className="admin-sidebar stack">
           <section className="card card-pad">
             <div className="row">
               <div>
@@ -248,6 +249,16 @@ export default function AdminPage() {
               </div>
             </div>
             <div className="lesson-list">
+              {isUnsavedLesson && (
+                <div className="lesson-row active unsaved" aria-live="polite">
+                  <span>
+                    <strong>
+                      {draft.lesson.lesson_order}. {draft.lesson.title}
+                    </strong>
+                    <span>Unsaved draft</span>
+                  </span>
+                </div>
+              )}
               {lessons.map((lesson) => (
                 <button
                   className={`lesson-row ${lesson.id === draft.lesson.id ? "active" : ""}`}
@@ -264,185 +275,212 @@ export default function AdminPage() {
                 </button>
               ))}
             </div>
-            <button className="secondary" type="button" onClick={createLessonDraft} style={{ marginTop: 16, width: "100%" }}>
+            <button className="secondary full-width" type="button" onClick={createLessonDraft}>
               New lesson
             </button>
           </section>
         </aside>
 
-        <section className="stack">
-        <section className="card card-pad">
-          <div className="row">
-            <div>
-              <p className="eyebrow">Content management</p>
-              <h2>Maintain lesson content</h2>
-              <p className="muted">Edit the video ID, passing score, questions, answers, and explanations.</p>
-            </div>
-            <span className={`pill ${isAdmin ? "success" : "warning"}`}>{isAdmin ? "Admin access" : "Admin required"}</span>
-          </div>
-        </section>
+        <section className="admin-main stack">
+          {isSupabaseConfigured && !profile && (
+            <section className="card card-pad">
+              <h3>Sign in required</h3>
+              <p className="muted">Sign in on the lesson page first, then return here.</p>
+              <Link className="tab active" href="/">
+                Go to sign in
+              </Link>
+            </section>
+          )}
 
-        {isSupabaseConfigured && !profile && (
-          <section className="card card-pad">
-            <h3>Sign in required</h3>
-            <p className="muted">Sign in on the lesson page first, then return here.</p>
-            <Link className="tab active" href="/">
-              Go to sign in
-            </Link>
-          </section>
-        )}
+          {profile && !isAdmin && (
+            <section className="card card-pad">
+              <h3>Student account</h3>
+              <p className="muted">This account can learn and track progress, but cannot edit course content.</p>
+            </section>
+          )}
 
-        {profile && !isAdmin && (
-          <section className="card card-pad">
-            <h3>Student account</h3>
-            <p className="muted">This account can learn and track progress, but cannot edit course content.</p>
-          </section>
-        )}
-
-        {(!isSupabaseConfigured || isAdmin) && (
-          <form className="card card-pad form-grid" onSubmit={saveContent}>
-            <div className="split">
-              <div className="field">
-                <label htmlFor="lesson-title">Lesson title</label>
-                <input id="lesson-title" value={draft.lesson.title} onChange={(event) => updateLesson({ title: event.target.value })} />
-              </div>
-              <div className="field">
-                <label htmlFor="video-id">YouTube video ID</label>
-                <input
-                  id="video-id"
-                  value={draft.lesson.youtube_video_id}
-                  onChange={(event) => updateLesson({ youtube_video_id: event.target.value })}
-                />
-              </div>
-            </div>
-
-            <div className="split">
-              <div className="field">
-                <label htmlFor="lesson-order">Lesson order</label>
-                <input
-                  id="lesson-order"
-                  min="1"
-                  type="number"
-                  value={draft.lesson.lesson_order}
-                  onChange={(event) => updateLesson({ lesson_order: Number(event.target.value) })}
-                />
-              </div>
-              <div className="field">
-                <label htmlFor="passing-score">Passing score</label>
-                <input
-                  id="passing-score"
-                  min="1"
-                  type="number"
-                  value={draft.lesson.passing_score}
-                  onChange={(event) => updateLesson({ passing_score: Number(event.target.value) })}
-                />
-              </div>
-              <div className="field">
-                <label htmlFor="published">Publish status</label>
-                <select
-                  id="published"
-                  value={draft.lesson.is_published ? "published" : "draft"}
-                  onChange={(event) => updateLesson({ is_published: event.target.value === "published" })}
-                >
-                  <option value="published">Published</option>
-                  <option value="draft">Draft</option>
-                </select>
-              </div>
-            </div>
-
-            <div className="field">
-              <label htmlFor="lesson-description">Lesson description</label>
-              <textarea
-                id="lesson-description"
-                value={draft.lesson.description}
-                onChange={(event) => updateLesson({ description: event.target.value })}
-              />
-            </div>
-
-            {draft.questions.map((question, index) => (
-              <div className="admin-question" key={question.id}>
-                <div className="row">
-                  <strong>Question {index + 1}</strong>
-                  <button className="danger" type="button" onClick={() => removeQuestion(index)}>
-                    Remove
-                  </button>
+          {(!isSupabaseConfigured || isAdmin) && (
+            <form className="card card-pad form-grid admin-form" onSubmit={saveContent}>
+              <div className="editor-hero">
+                <div>
+                  <p className="eyebrow">Content management</p>
+                  <h2>Maintain lesson content</h2>
+                  <p className="muted">Choose a lesson, edit its video and quiz, then save the changes.</p>
                 </div>
-                <div className="field">
-                  <label htmlFor={`prompt-${question.id}`}>Prompt</label>
-                  <textarea
-                    id={`prompt-${question.id}`}
-                    value={question.prompt}
-                    onChange={(event) => updateQuestion(index, { prompt: event.target.value })}
-                  />
+                <span className={`pill ${isAdmin ? "success" : "warning"}`}>{isAdmin ? "Admin access" : "Admin required"}</span>
+              </div>
+
+              <div className="form-section">
+                <div className="section-heading">
+                  <div>
+                    <h3>Lesson details</h3>
+                    <p className="muted">Set the learner-facing title, video, order, and publish state.</p>
+                  </div>
+                  {isUnsavedLesson && <span className="pill warning">Unsaved draft</span>}
                 </div>
+
                 <div className="split">
                   <div className="field">
-                    <label htmlFor={`type-${question.id}`}>Question type</label>
-                    <select
-                      id={`type-${question.id}`}
-                      value={question.choice_type}
-                      onChange={(event) =>
-                        updateQuestion(index, {
-                          choice_type: event.target.value as QuizQuestion["choice_type"],
-                          correct_answers: [question.correct_answers[0] ?? 0]
-                        })
-                      }
-                    >
-                      <option value="single">Single choice</option>
-                      <option value="multiple">Multiple choice</option>
-                    </select>
+                    <label htmlFor="lesson-title">Lesson title</label>
+                    <input id="lesson-title" value={draft.lesson.title} onChange={(event) => updateLesson({ title: event.target.value })} />
                   </div>
                   <div className="field">
-                    <label htmlFor={`answers-${question.id}`}>Correct answer indexes</label>
+                    <label htmlFor="video-id">YouTube video ID</label>
                     <input
-                      id={`answers-${question.id}`}
-                      value={question.correct_answers.join(",")}
-                      onChange={(event) =>
-                        updateQuestion(index, {
-                          correct_answers: event.target.value
-                            .split(",")
-                            .map((value) => Number(value.trim()))
-                            .filter((value) => Number.isInteger(value))
-                        })
-                      }
+                      id="video-id"
+                      value={draft.lesson.youtube_video_id}
+                      onChange={(event) => updateLesson({ youtube_video_id: event.target.value })}
                     />
                   </div>
                 </div>
-                <div className="field">
-                  <label htmlFor={`options-${question.id}`}>Options, one per line</label>
-                  <textarea
-                    id={`options-${question.id}`}
-                    value={question.options.join("\n")}
-                    onChange={(event) => updateQuestion(index, { options: event.target.value.split("\n").filter(Boolean) })}
-                  />
+
+                <div className="detail-grid">
+                  <div className="field">
+                    <label htmlFor="lesson-order">Lesson order</label>
+                    <input
+                      id="lesson-order"
+                      min="1"
+                      type="number"
+                      value={draft.lesson.lesson_order}
+                      onChange={(event) => updateLesson({ lesson_order: Number(event.target.value) })}
+                    />
+                  </div>
+                  <div className="field">
+                    <label htmlFor="passing-score">Passing score</label>
+                    <input
+                      id="passing-score"
+                      min="1"
+                      type="number"
+                      value={draft.lesson.passing_score}
+                      onChange={(event) => updateLesson({ passing_score: Number(event.target.value) })}
+                    />
+                  </div>
+                  <div className="field">
+                    <label htmlFor="published">Publish status</label>
+                    <select
+                      id="published"
+                      value={draft.lesson.is_published ? "published" : "draft"}
+                      onChange={(event) => updateLesson({ is_published: event.target.value === "published" })}
+                    >
+                      <option value="published">Published</option>
+                      <option value="draft">Draft</option>
+                    </select>
+                  </div>
                 </div>
+
                 <div className="field">
-                  <label htmlFor={`explanation-${question.id}`}>Explanation</label>
+                  <label htmlFor="lesson-description">Lesson description</label>
                   <textarea
-                    id={`explanation-${question.id}`}
-                    value={question.explanation}
-                    onChange={(event) => updateQuestion(index, { explanation: event.target.value })}
+                    id="lesson-description"
+                    value={draft.lesson.description}
+                    onChange={(event) => updateLesson({ description: event.target.value })}
                   />
                 </div>
               </div>
-            ))}
 
-            <div className="row">
-              <button className="secondary" type="button" onClick={addQuestion}>
-                Add question
-              </button>
-              <button className="primary" type="submit">
-                Save content
-              </button>
-            </div>
-          </form>
-        )}
+              <div className="form-section">
+                <div className="section-heading">
+                  <div>
+                    <h3>Quiz questions</h3>
+                    <p className="muted">Add questions, accepted answers, and explanations for failed attempts.</p>
+                  </div>
+                  <button className="secondary" type="button" onClick={addQuestion}>
+                    Add question
+                  </button>
+                </div>
 
-        {message && (
-          <section className="card card-pad" role="status">
-            {message}
-          </section>
-        )}
+                <div className="question-stack">
+                  {draft.questions.map((question, index) => (
+                    <div className="admin-question" key={question.id}>
+                      <div className="row">
+                        <div>
+                          <strong>Question {index + 1}</strong>
+                          <p className="muted">{question.choice_type === "multiple" ? "Multiple choice" : "Single choice"}</p>
+                        </div>
+                        <button className="danger" type="button" onClick={() => removeQuestion(index)}>
+                          Remove
+                        </button>
+                      </div>
+                      <div className="field">
+                        <label htmlFor={`prompt-${question.id}`}>Prompt</label>
+                        <textarea
+                          id={`prompt-${question.id}`}
+                          value={question.prompt}
+                          onChange={(event) => updateQuestion(index, { prompt: event.target.value })}
+                        />
+                      </div>
+                      <div className="question-grid">
+                        <div className="field">
+                          <label htmlFor={`type-${question.id}`}>Question type</label>
+                          <select
+                            id={`type-${question.id}`}
+                            value={question.choice_type}
+                            onChange={(event) =>
+                              updateQuestion(index, {
+                                choice_type: event.target.value as QuizQuestion["choice_type"],
+                                correct_answers: [question.correct_answers[0] ?? 0]
+                              })
+                            }
+                          >
+                            <option value="single">Single choice</option>
+                            <option value="multiple">Multiple choice</option>
+                          </select>
+                        </div>
+                        <div className="field">
+                          <label htmlFor={`answers-${question.id}`}>Correct answer indexes</label>
+                          <input
+                            id={`answers-${question.id}`}
+                            value={question.correct_answers.join(",")}
+                            onChange={(event) =>
+                              updateQuestion(index, {
+                                correct_answers: event.target.value
+                                  .split(",")
+                                  .map((value) => Number(value.trim()))
+                                  .filter((value) => Number.isInteger(value))
+                              })
+                            }
+                          />
+                        </div>
+                      </div>
+                      <div className="split">
+                        <div className="field">
+                          <label htmlFor={`options-${question.id}`}>Options, one per line</label>
+                          <textarea
+                            id={`options-${question.id}`}
+                            value={question.options.join("\n")}
+                            onChange={(event) => updateQuestion(index, { options: event.target.value.split("\n").filter(Boolean) })}
+                          />
+                        </div>
+                        <div className="field">
+                          <label htmlFor={`explanation-${question.id}`}>Explanation</label>
+                          <textarea
+                            id={`explanation-${question.id}`}
+                            value={question.explanation}
+                            onChange={(event) => updateQuestion(index, { explanation: event.target.value })}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="form-actions">
+                <button className="secondary" type="button" onClick={createLessonDraft}>
+                  New lesson
+                </button>
+                <button className="primary" type="submit">
+                  Save content
+                </button>
+              </div>
+            </form>
+          )}
+
+          {message && (
+            <section className="card card-pad" role="status">
+              {message}
+            </section>
+          )}
         </section>
       </main>
     </div>

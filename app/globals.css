@@ -158,6 +158,22 @@ h3 {
   align-items: start;
 }
 
+.admin-grid {
+  display: grid;
+  grid-template-columns: 300px minmax(0, 1fr);
+  gap: 24px;
+  align-items: start;
+}
+
+.admin-sidebar {
+  position: sticky;
+  top: 112px;
+}
+
+.admin-main {
+  min-width: 0;
+}
+
 .stack {
   display: grid;
   gap: 20px;
@@ -475,6 +491,74 @@ fieldset {
   gap: 16px;
 }
 
+.admin-form {
+  gap: 24px;
+}
+
+.editor-hero,
+.section-heading,
+.form-actions {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.editor-hero {
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--line);
+}
+
+.editor-hero h2 {
+  font-size: clamp(1.45rem, 3vw, 2rem);
+  line-height: 1.12;
+}
+
+.editor-hero p,
+.section-heading p,
+.admin-question p {
+  margin: 4px 0 0;
+}
+
+.form-section {
+  display: grid;
+  gap: 16px;
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: #fbfdff;
+}
+
+.detail-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.question-stack {
+  display: grid;
+  gap: 14px;
+}
+
+.question-grid {
+  display: grid;
+  grid-template-columns: minmax(180px, 240px) minmax(180px, 1fr);
+  gap: 14px;
+}
+
+.form-actions {
+  position: sticky;
+  bottom: 16px;
+  z-index: 10;
+  align-items: center;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: 0 16px 32px rgba(15, 23, 42, 0.1);
+  backdrop-filter: blur(14px);
+}
+
 .field {
   display: grid;
   gap: 7px;
@@ -561,6 +645,15 @@ fieldset {
   font-size: 0.84rem;
 }
 
+.lesson-row.unsaved {
+  border-style: dashed;
+}
+
+.full-width {
+  width: 100%;
+  margin-top: 16px;
+}
+
 .sr-only {
   position: absolute;
   width: 1px;
@@ -574,8 +667,13 @@ fieldset {
 }
 
 @media (max-width: 900px) {
-  .grid {
+  .grid,
+  .admin-grid {
     grid-template-columns: 1fr;
+  }
+
+  .admin-sidebar {
+    position: static;
   }
 }
 
@@ -591,7 +689,10 @@ fieldset {
 
   .topbar-inner,
   .row,
-  .top-actions {
+  .top-actions,
+  .editor-hero,
+  .section-heading,
+  .form-actions {
     align-items: stretch;
     flex-direction: column;
   }
@@ -602,7 +703,9 @@ fieldset {
     padding: 18px;
   }
 
-  .split {
+  .split,
+  .detail-grid,
+  .question-grid {
     grid-template-columns: 1fr;
   }
 
