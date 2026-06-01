@@ -13,6 +13,7 @@ export default function AdminPage() {
   const [draft, setDraft] = useState<LessonBundle>(demoLessonBundle);
   const [lessons, setLessons] = useState<Lesson[]>([demoLessonBundle.lesson]);
   const [message, setMessage] = useState("");
+  const [validationIssues, setValidationIssues] = useState<string[]>([]);
   const [activeEditorTab, setActiveEditorTab] = useState<"lesson" | "quiz" | "preview">("lesson");
   const isAdmin = profile?.role === "admin";
   const isUnsavedLesson = !lessons.some((lesson) => lesson.id === draft.lesson.id);
@@ -121,6 +122,7 @@ export default function AdminPage() {
   }
 
   function updateLesson(patch: Partial<Lesson>) {
+    setValidationIssues([]);
     setDraft((current) => ({
       ...current,
       lesson: { ...current.lesson, ...patch }
@@ -128,6 +130,7 @@ export default function AdminPage() {
   }
 
   function updateQuestion(index: number, patch: Partial<QuizQuestion>) {
+    setValidationIssues([]);
     setDraft((current) => ({
       ...current,
       questions: current.questions.map((question, questionIndex) =>
@@ -137,6 +140,7 @@ export default function AdminPage() {
   }
 
   function updateQuestionType(index: number, choiceType: QuizQuestion["choice_type"]) {
+    setValidationIssues([]);
     setDraft((current) => ({
       ...current,
       questions: current.questions.map((question, questionIndex) => {
@@ -152,6 +156,7 @@ export default function AdminPage() {
   }
 
   function updateQuestionOption(questionIndex: number, optionIndex: number, value: string) {
+    setValidationIssues([]);
     setDraft((current) => ({
       ...current,
       questions: current.questions.map((question, index) =>
@@ -166,6 +171,7 @@ export default function AdminPage() {
   }
 
   function addQuestionOption(questionIndex: number) {
+    setValidationIssues([]);
     setDraft((current) => ({
       ...current,
       questions: current.questions.map((question, index) =>
@@ -180,6 +186,7 @@ export default function AdminPage() {
   }
 
   function removeQuestionOption(questionIndex: number, optionIndex: number) {
+    setValidationIssues([]);
     setDraft((current) => ({
       ...current,
       questions: current.questions.map((question, index) => {
@@ -200,6 +207,7 @@ export default function AdminPage() {
   }
 
   function toggleCorrectAnswer(questionIndex: number, optionIndex: number) {
+    setValidationIssues([]);
     setDraft((current) => ({
       ...current,
       questions: current.questions.map((question, index) => {
@@ -222,6 +230,7 @@ export default function AdminPage() {
   }
 
   function addQuestion() {
+    setValidationIssues([]);
     setDraft((current) => ({
       ...current,
       questions: [
@@ -241,6 +250,7 @@ export default function AdminPage() {
   }
 
   function removeQuestion(index: number) {
+    setValidationIssues([]);
     setDraft((current) => ({
       ...current,
       questions: current.questions
@@ -251,6 +261,16 @@ export default function AdminPage() {
 
   async function saveContent(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    const issues = validateLessonBundle(draft);
+
+    if (issues.length) {
+      setValidationIssues(issues);
+      setMessage("Fix the highlighted content issues before saving.");
+      setActiveEditorTab(issues.some((issue) => issue.startsWith("Question")) ? "quiz" : "lesson");
+      return;
+    }
+
+    setValidationIssues([]);
 
     if (isSupabaseConfigured && !isAdmin) {
       setMessage("Admin access is required to save content.");
@@ -707,6 +727,17 @@ export default function AdminPage() {
                   Save content
                 </button>
               </div>
+
+              {validationIssues.length > 0 && (
+                <div className="validation-panel" role="alert">
+                  <strong>Content needs attention</strong>
+                  <ul>
+                    {validationIssues.map((issue) => (
+                      <li key={issue}>{issue}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
             </form>
           )}
 
@@ -732,4 +763,37 @@ function formatCorrectAnswerSummary(question: QuizQuestion) {
 function getLessonStatus(lesson: Lesson) {
   if (lesson.archived_at) return "Archived";
   return lesson.is_published ? "Published" : "Draft";
+}
+
+function validateLessonBundle(bundle: LessonBundle) {
+  const issues: string[] = [];
+  const lesson = bundle.lesson;
+
+  if (!lesson.title.trim()) issues.push("Lesson title is required.");
+  if (!lesson.description.trim()) issues.push("Lesson description is required.");
+  if (!lesson.youtube_video_id.trim()) issues.push("YouTube video ID is required.");
+  if (!Number.isInteger(lesson.lesson_order) || lesson.lesson_order < 1) issues.push("Lesson order must be 1 or higher.");
+  if (!Number.isInteger(lesson.passing_score) || lesson.passing_score < 1) issues.push("Passing score must be 1 or higher.");
+  if (!bundle.questions.length) issues.push("Add at least one quiz question.");
+  if (bundle.questions.length && lesson.passing_score > bundle.questions.length) {
+    issues.push("Passing score cannot be higher than the number of quiz questions.");
+  }
+
+  bundle.questions.forEach((question, index) => {
+    const label = `Question ${index + 1}`;
+    const trimmedOptions = question.options.map((option) => option.trim()).filter(Boolean);
+
+    if (!question.prompt.trim()) issues.push(`${label} needs a prompt.`);
+    if (trimmedOptions.length < 2) issues.push(`${label} needs at least two non-empty options.`);
+    if (!question.explanation.trim()) issues.push(`${label} needs an explanation.`);
+    if (!question.correct_answers.length) issues.push(`${label} needs a correct answer.`);
+    if (question.choice_type === "single" && question.correct_answers.length !== 1) issues.push(`${label} must have exactly one correct answer.`);
+
+    const hasMissingCorrectAnswer = question.correct_answers.some(
+      (answerIndex) => answerIndex < 0 || answerIndex >= question.options.length || !question.options[answerIndex]?.trim()
+    );
+    if (hasMissingCorrectAnswer) issues.push(`${label} has a correct answer pointing to a missing or empty option.`);
+  });
+
+  return issues;
 }

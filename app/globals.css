@@ -800,6 +800,24 @@ fieldset {
   font-size: 0.84rem;
 }
 
+.validation-panel {
+  display: grid;
+  gap: 10px;
+  margin: -8px 24px 24px;
+  padding: 16px;
+  border: 1px solid color-mix(in srgb, var(--red) 32%, transparent);
+  border-radius: var(--radius);
+  background: var(--red-soft);
+  color: var(--red-text);
+}
+
+.validation-panel ul {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding-left: 20px;
+}
+
 .field {
   display: grid;
   gap: 7px;
@@ -1002,6 +1020,10 @@ fieldset {
     grid-template-columns: repeat(3, minmax(0, 1fr));
     width: auto;
     margin-inline: 18px;
+  }
+
+  .validation-panel {
+    margin-inline: 16px;
   }
 
   .admin-subtabs button {
