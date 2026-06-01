@@ -31,6 +31,7 @@ body {
   color: var(--text);
   font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   line-height: 1.5;
+  overflow-x: hidden;
 }
 
 button,
@@ -97,6 +98,17 @@ input:disabled {
   min-width: 0;
 }
 
+.brand h1,
+.brand p,
+h2,
+h3,
+p,
+strong,
+span,
+label {
+  overflow-wrap: anywhere;
+}
+
 .eyebrow {
   margin: 0 0 2px;
   color: var(--muted);
@@ -128,6 +140,7 @@ h3 {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
+  min-width: 0;
 }
 
 .tab {
@@ -143,6 +156,7 @@ h3 {
   font-size: 0.86rem;
   font-weight: 800;
   text-decoration: none;
+  white-space: nowrap;
 }
 
 .tab.active {
@@ -184,6 +198,7 @@ h3 {
   border-radius: var(--radius);
   background: var(--surface);
   box-shadow: var(--shadow);
+  min-width: 0;
 }
 
 .card-pad {
@@ -214,6 +229,7 @@ h3 {
 .video-frame {
   position: relative;
   aspect-ratio: 16 / 9;
+  overflow: hidden;
   background: #0f172a;
 }
 
@@ -235,6 +251,7 @@ h3 {
   align-items: center;
   justify-content: space-between;
   gap: 16px;
+  min-width: 0;
 }
 
 .progress-label {
@@ -539,6 +556,7 @@ fieldset {
   border: 1px solid var(--line);
   border-radius: var(--radius);
   background: var(--surface-muted);
+  max-width: calc(100% - 48px);
 }
 
 .admin-subtabs button {
@@ -612,7 +630,7 @@ fieldset {
 
 .answer-option-row {
   display: grid;
-  grid-template-columns: 112px minmax(0, 1fr) auto;
+  grid-template-columns: minmax(96px, 112px) minmax(0, 1fr) auto;
   gap: 10px;
   align-items: center;
   padding: 10px;
@@ -727,6 +745,7 @@ fieldset {
 .field input,
 .field textarea,
 .field select {
+  min-width: 0;
   width: 100%;
   border: 1px solid var(--line);
   border-radius: var(--radius);
@@ -801,6 +820,8 @@ fieldset {
   background: var(--surface-muted);
   color: var(--text);
   text-align: left;
+  min-width: 0;
+  width: 100%;
 }
 
 .lesson-row.active {
@@ -811,6 +832,7 @@ fieldset {
 .lesson-row > span:first-child {
   display: grid;
   gap: 2px;
+  min-width: 0;
 }
 
 .lesson-row > span:first-child span {
@@ -840,6 +862,10 @@ fieldset {
 }
 
 @media (max-width: 900px) {
+  .shell {
+    width: min(100% - 28px, 1180px);
+  }
+
   .grid,
   .admin-grid {
     grid-template-columns: 1fr;
@@ -848,16 +874,29 @@ fieldset {
   .admin-sidebar {
     position: static;
   }
+
+  aside.stack {
+    order: 2;
+  }
+
+  .admin-sidebar {
+    order: 0;
+  }
+
+  .topbar {
+    position: static;
+  }
 }
 
 @media (max-width: 640px) {
   .shell {
-    width: min(100% - 24px, 1180px);
-    padding-top: 12px;
+    width: min(100% - 20px, 1180px);
+    padding: 10px 0 32px;
   }
 
   .topbar {
-    margin: 0 -12px 18px;
+    margin: 0 -10px 16px;
+    padding: 12px 10px;
   }
 
   .topbar-inner,
@@ -871,15 +910,67 @@ fieldset {
     flex-direction: column;
   }
 
+  .brand h1 {
+    font-size: 1.05rem;
+  }
+
+  .eyebrow {
+    font-size: 0.7rem;
+  }
+
+  .top-actions,
+  .tabs {
+    width: 100%;
+  }
+
+  .tabs {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .tab {
+    min-width: 0;
+    padding: 0 8px;
+    font-size: 0.8rem;
+    white-space: normal;
+  }
+
   .admin-subtabs {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     width: auto;
     margin-inline: 18px;
+  }
+
+  .admin-subtabs button {
+    padding: 0 8px;
+    font-size: 0.8rem;
   }
 
   .card-pad,
   .hero-copy,
   .video-meta {
-    padding: 18px;
+    padding: 16px;
+  }
+
+  .hero-copy h2,
+  .editor-hero h2,
+  .preview-panel h2 {
+    font-size: 1.35rem;
+    line-height: 1.16;
+  }
+
+  .stack {
+    gap: 16px;
+  }
+
+  .card {
+    box-shadow: 0 14px 32px rgba(15, 23, 42, 0.07);
+  }
+
+  .lesson-row {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 10px;
   }
 
   .split,
@@ -887,6 +978,32 @@ fieldset {
   .question-grid,
   .answer-option-row {
     grid-template-columns: 1fr;
+  }
+
+  .form-section {
+    padding: 14px;
+  }
+
+  .answer-option-row {
+    align-items: stretch;
+  }
+
+  .correct-control {
+    justify-content: flex-start;
+  }
+
+  .preview-quiz .row {
+    gap: 8px;
+  }
+
+  .form-actions {
+    position: static;
+    padding: 14px;
+    box-shadow: none;
+  }
+
+  .form-actions-meta {
+    margin-right: 0;
   }
 
   .option-editor-heading {
@@ -899,5 +1016,27 @@ fieldset {
   .danger,
   .tab {
     width: 100%;
+  }
+}
+
+@media (max-width: 420px) {
+  .tabs,
+  .admin-subtabs {
+    grid-template-columns: 1fr;
+  }
+
+  .pill {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .progress-label {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .video-meta .row {
+    gap: 10px;
   }
 }
