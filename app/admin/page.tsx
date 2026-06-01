@@ -135,6 +135,91 @@ export default function AdminPage() {
     }));
   }
 
+  function updateQuestionType(index: number, choiceType: QuizQuestion["choice_type"]) {
+    setDraft((current) => ({
+      ...current,
+      questions: current.questions.map((question, questionIndex) => {
+        if (questionIndex !== index) return question;
+        const firstCorrect = question.correct_answers[0] ?? 0;
+        return {
+          ...question,
+          choice_type: choiceType,
+          correct_answers: choiceType === "single" ? [firstCorrect] : question.correct_answers.length ? question.correct_answers : [0]
+        };
+      })
+    }));
+  }
+
+  function updateQuestionOption(questionIndex: number, optionIndex: number, value: string) {
+    setDraft((current) => ({
+      ...current,
+      questions: current.questions.map((question, index) =>
+        index === questionIndex
+          ? {
+              ...question,
+              options: question.options.map((option, currentOptionIndex) => (currentOptionIndex === optionIndex ? value : option))
+            }
+          : question
+      )
+    }));
+  }
+
+  function addQuestionOption(questionIndex: number) {
+    setDraft((current) => ({
+      ...current,
+      questions: current.questions.map((question, index) =>
+        index === questionIndex
+          ? {
+              ...question,
+              options: [...question.options, `Option ${question.options.length + 1}`]
+            }
+          : question
+      )
+    }));
+  }
+
+  function removeQuestionOption(questionIndex: number, optionIndex: number) {
+    setDraft((current) => ({
+      ...current,
+      questions: current.questions.map((question, index) => {
+        if (index !== questionIndex || question.options.length <= 2) return question;
+
+        const options = question.options.filter((_option, currentOptionIndex) => currentOptionIndex !== optionIndex);
+        const correctAnswers = question.correct_answers
+          .filter((answerIndex) => answerIndex !== optionIndex)
+          .map((answerIndex) => (answerIndex > optionIndex ? answerIndex - 1 : answerIndex));
+
+        return {
+          ...question,
+          options,
+          correct_answers: correctAnswers.length ? correctAnswers : [0]
+        };
+      })
+    }));
+  }
+
+  function toggleCorrectAnswer(questionIndex: number, optionIndex: number) {
+    setDraft((current) => ({
+      ...current,
+      questions: current.questions.map((question, index) => {
+        if (index !== questionIndex) return question;
+        if (question.choice_type === "single") {
+          return { ...question, correct_answers: [optionIndex] };
+        }
+
+        const isSelected = question.correct_answers.includes(optionIndex);
+        const correctAnswers = isSelected
+          ? question.correct_answers.filter((answerIndex) => answerIndex !== optionIndex)
+          : [...question.correct_answers, optionIndex];
+
+        return {
+          ...question,
+          correct_answers: correctAnswers.length ? correctAnswers.sort((a, b) => a - b) : [optionIndex]
+        };
+      })
+    }));
+  }
+
   function addQuestion() {
     setDraft((current) => ({
       ...current,
@@ -439,50 +524,63 @@ export default function AdminPage() {
                           <select
                             id={`type-${question.id}`}
                             value={question.choice_type}
-                            onChange={(event) =>
-                              updateQuestion(index, {
-                                choice_type: event.target.value as QuizQuestion["choice_type"],
-                                correct_answers: [question.correct_answers[0] ?? 0]
-                              })
-                            }
+                            onChange={(event) => updateQuestionType(index, event.target.value as QuizQuestion["choice_type"])}
                           >
                             <option value="single">Single choice</option>
                             <option value="multiple">Multiple choice</option>
                           </select>
                         </div>
-                        <div className="field">
-                          <label htmlFor={`answers-${question.id}`}>Correct answer indexes</label>
-                          <input
-                            id={`answers-${question.id}`}
-                            value={question.correct_answers.join(",")}
-                            onChange={(event) =>
-                              updateQuestion(index, {
-                                correct_answers: event.target.value
-                                  .split(",")
-                                  .map((value) => Number(value.trim()))
-                                  .filter((value) => Number.isInteger(value))
-                              })
-                            }
-                          />
+                        <div className="answer-summary" aria-live="polite">
+                          <span>Correct answer</span>
+                          <strong>{formatCorrectAnswerSummary(question)}</strong>
                         </div>
                       </div>
-                      <div className="split">
-                        <div className="field">
-                          <label htmlFor={`options-${question.id}`}>Options, one per line</label>
-                          <textarea
-                            id={`options-${question.id}`}
-                            value={question.options.join("\n")}
-                            onChange={(event) => updateQuestion(index, { options: event.target.value.split("\n").filter(Boolean) })}
-                          />
+
+                      <div className="field">
+                        <div className="option-editor-heading">
+                          <span id={`options-label-${question.id}`}>Options and correct answer</span>
+                          <button className="secondary compact-button" type="button" onClick={() => addQuestionOption(index)}>
+                            Add option
+                          </button>
                         </div>
-                        <div className="field">
-                          <label htmlFor={`explanation-${question.id}`}>Explanation</label>
-                          <textarea
-                            id={`explanation-${question.id}`}
-                            value={question.explanation}
-                            onChange={(event) => updateQuestion(index, { explanation: event.target.value })}
-                          />
+                        <div className="answer-options" role="group" aria-labelledby={`options-label-${question.id}`}>
+                          {question.options.map((option, optionIndex) => (
+                            <div className="answer-option-row" key={`${question.id}-${optionIndex}`}>
+                              <label className="correct-control">
+                                <input
+                                  checked={question.correct_answers.includes(optionIndex)}
+                                  name={`correct-${question.id}`}
+                                  type={question.choice_type === "single" ? "radio" : "checkbox"}
+                                  onChange={() => toggleCorrectAnswer(index, optionIndex)}
+                                />
+                                <span>Correct</span>
+                              </label>
+                              <input
+                                aria-label={`Option ${optionIndex + 1}`}
+                                value={option}
+                                onChange={(event) => updateQuestionOption(index, optionIndex, event.target.value)}
+                              />
+                              <button
+                                aria-label={`Remove option ${optionIndex + 1}`}
+                                className="danger compact-button"
+                                disabled={question.options.length <= 2}
+                                type="button"
+                                onClick={() => removeQuestionOption(index, optionIndex)}
+                              >
+                                Remove
+                              </button>
+                            </div>
+                          ))}
                         </div>
+                      </div>
+
+                      <div className="field">
+                        <label htmlFor={`explanation-${question.id}`}>Explanation</label>
+                        <textarea
+                          id={`explanation-${question.id}`}
+                          value={question.explanation}
+                          onChange={(event) => updateQuestion(index, { explanation: event.target.value })}
+                        />
                       </div>
                     </div>
                   ))}
@@ -514,4 +612,12 @@ export default function AdminPage() {
       </main>
     </div>
   );
+}
+
+function formatCorrectAnswerSummary(question: QuizQuestion) {
+  const labels = question.correct_answers
+    .map((answerIndex) => question.options[answerIndex])
+    .filter(Boolean);
+
+  return labels.length ? labels.join(", ") : "Choose an answer";
 }
