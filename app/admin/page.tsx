@@ -12,6 +12,7 @@ export default function AdminPage() {
   const [draft, setDraft] = useState<LessonBundle>(demoLessonBundle);
   const [lessons, setLessons] = useState<Lesson[]>([demoLessonBundle.lesson]);
   const [message, setMessage] = useState("");
+  const [activeEditorTab, setActiveEditorTab] = useState<"lesson" | "quiz">("lesson");
   const isAdmin = profile?.role === "admin";
   const isUnsavedLesson = !lessons.some((lesson) => lesson.id === draft.lesson.id);
 
@@ -115,6 +116,7 @@ export default function AdminPage() {
         }
       ]
     }));
+    setActiveEditorTab("lesson");
   }
 
   function updateLesson(patch: Partial<Lesson>) {
@@ -310,6 +312,26 @@ export default function AdminPage() {
                 <span className={`pill ${isAdmin ? "success" : "warning"}`}>{isAdmin ? "Admin access" : "Admin required"}</span>
               </div>
 
+              <div className="admin-subtabs" aria-label="Content editor sections">
+                <button
+                  aria-pressed={activeEditorTab === "lesson"}
+                  className={activeEditorTab === "lesson" ? "active" : ""}
+                  type="button"
+                  onClick={() => setActiveEditorTab("lesson")}
+                >
+                  Lesson
+                </button>
+                <button
+                  aria-pressed={activeEditorTab === "quiz"}
+                  className={activeEditorTab === "quiz" ? "active" : ""}
+                  type="button"
+                  onClick={() => setActiveEditorTab("quiz")}
+                >
+                  Quiz
+                </button>
+              </div>
+
+              {activeEditorTab === "lesson" && (
               <div className="form-section">
                 <div className="section-heading">
                   <div>
@@ -377,7 +399,9 @@ export default function AdminPage() {
                   />
                 </div>
               </div>
+              )}
 
+              {activeEditorTab === "quiz" && (
               <div className="form-section">
                 <div className="section-heading">
                   <div>
@@ -464,8 +488,13 @@ export default function AdminPage() {
                   ))}
                 </div>
               </div>
+              )}
 
               <div className="form-actions">
+                <div className="form-actions-meta">
+                  <strong>{activeEditorTab === "lesson" ? "Lesson setup" : "Quiz setup"}</strong>
+                  <span>{activeEditorTab === "lesson" ? "Editing lesson details" : `${draft.questions.length} question${draft.questions.length === 1 ? "" : "s"}`}</span>
+                </div>
                 <button className="secondary" type="button" onClick={createLessonDraft}>
                   New lesson
                 </button>

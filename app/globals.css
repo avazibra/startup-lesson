@@ -529,6 +529,34 @@ fieldset {
   background: #fbfdff;
 }
 
+.admin-subtabs {
+  display: inline-grid;
+  grid-template-columns: repeat(2, minmax(110px, 1fr));
+  gap: 4px;
+  width: fit-content;
+  margin: -4px 24px 0;
+  padding: 4px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface-muted);
+}
+
+.admin-subtabs button {
+  min-height: 34px;
+  padding: 0 14px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 0.86rem;
+  font-weight: 850;
+  box-shadow: none;
+}
+
+.admin-subtabs button.active {
+  background: white;
+  color: var(--text);
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.08);
+}
+
 .detail-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -557,6 +585,17 @@ fieldset {
   background: rgba(255, 255, 255, 0.9);
   box-shadow: 0 16px 32px rgba(15, 23, 42, 0.1);
   backdrop-filter: blur(14px);
+}
+
+.form-actions-meta {
+  display: grid;
+  gap: 1px;
+  margin-right: auto;
+}
+
+.form-actions-meta span {
+  color: var(--muted);
+  font-size: 0.84rem;
 }
 
 .field {
@@ -695,6 +734,11 @@ fieldset {
   .form-actions {
     align-items: stretch;
     flex-direction: column;
+  }
+
+  .admin-subtabs {
+    width: auto;
+    margin-inline: 18px;
   }
 
   .card-pad,
