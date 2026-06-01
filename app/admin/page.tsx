@@ -6,6 +6,7 @@ import { COURSE_ID, DEFAULT_LESSON_ID } from "@/lib/constants";
 import { demoLessonBundle, demoProfile } from "@/lib/demo-data";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 import type { Lesson, LessonBundle, Profile, QuizQuestion } from "@/lib/types";
+import { ThemeToggle } from "../theme-toggle";
 
 export default function AdminPage() {
   const [profile, setProfile] = useState<Profile | null>(isSupabaseConfigured ? null : demoProfile);
@@ -350,17 +351,20 @@ export default function AdminPage() {
             <p className="eyebrow">Startup Fundamentals</p>
             <h1>Admin</h1>
           </div>
-          <nav className="tabs" aria-label="App sections">
-            <Link className="tab" href="/">
-              Lesson
-            </Link>
-            <Link className="tab active" href="/admin">
-              Admin
-            </Link>
-            <Link className="tab" href="/profile">
-              Profile
-            </Link>
-          </nav>
+          <div className="top-actions">
+            <ThemeToggle />
+            <nav className="tabs" aria-label="App sections">
+              <Link className="tab" href="/">
+                Lesson
+              </Link>
+              <Link className="tab active" href="/admin">
+                Admin
+              </Link>
+              <Link className="tab" href="/profile">
+                Profile
+              </Link>
+            </nav>
+          </div>
         </div>
       </header>
 

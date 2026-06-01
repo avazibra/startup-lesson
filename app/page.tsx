@@ -6,6 +6,7 @@ import { demoAttempts, demoLessonBundle, demoLessons, demoProfile, emptyDemoProg
 import { COURSE_ID, DEFAULT_LESSON_ID } from "@/lib/constants";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 import type { Lesson, LessonBundle, LessonProgress, LessonWithProgress, Profile, QuizAttempt, QuizQuestion } from "@/lib/types";
+import { ThemeToggle } from "./theme-toggle";
 
 declare global {
   interface Window {
@@ -436,6 +437,7 @@ export default function Home() {
           </div>
           <div className="top-actions">
             <span className={`pill ${isSupabaseConfigured ? "success" : "warning"}`}>{modeLabel}</span>
+            <ThemeToggle />
             <nav className="tabs" aria-label="App sections">
               <Link className="tab active" href="/">
                 Lesson

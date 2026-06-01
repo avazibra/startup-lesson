@@ -6,6 +6,7 @@ import { COURSE_ID } from "@/lib/constants";
 import { demoAttempts, demoLessons, demoProfile } from "@/lib/demo-data";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 import type { LessonProgress, LessonWithProgress, Profile, QuizAttempt } from "@/lib/types";
+import { ThemeToggle } from "../theme-toggle";
 
 export default function ProfilePage() {
   const [profile, setProfile] = useState<Profile | null>(isSupabaseConfigured ? null : demoProfile);
@@ -80,19 +81,22 @@ export default function ProfilePage() {
             <p className="eyebrow">Startup Fundamentals</p>
             <h1>Profile</h1>
           </div>
-          <nav className="tabs" aria-label="App sections">
-            <Link className="tab" href="/">
-              Lesson
-            </Link>
-            {profile?.role === "admin" && (
-              <Link className="tab" href="/admin">
-                Admin
+          <div className="top-actions">
+            <ThemeToggle />
+            <nav className="tabs" aria-label="App sections">
+              <Link className="tab" href="/">
+                Lesson
               </Link>
-            )}
-            <Link className="tab active" href="/profile">
-              Profile
-            </Link>
-          </nav>
+              {profile?.role === "admin" && (
+                <Link className="tab" href="/admin">
+                  Admin
+                </Link>
+              )}
+              <Link className="tab active" href="/profile">
+                Profile
+              </Link>
+            </nav>
+          </div>
         </div>
       </header>
 
