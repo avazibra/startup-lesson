@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { LESSON_ID } from "@/lib/constants";
+import { DEFAULT_LESSON_ID } from "@/lib/constants";
 import { demoAttempts, demoProfile, emptyDemoProgress } from "@/lib/demo-data";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 import type { LessonProgress, Profile, QuizAttempt } from "@/lib/types";
@@ -39,12 +39,12 @@ export default function ProfilePage() {
 
     const [{ data: userProfile }, { data: userProgress }, { data: userAttempts }] = await Promise.all([
       supabase.from("profiles").select("*").eq("id", userId).single(),
-      supabase.from("lesson_progress").select("*").eq("user_id", userId).eq("lesson_id", LESSON_ID).maybeSingle(),
+      supabase.from("lesson_progress").select("*").eq("user_id", userId).eq("lesson_id", DEFAULT_LESSON_ID).maybeSingle(),
       supabase
         .from("quiz_attempts")
         .select("*")
         .eq("user_id", userId)
-        .eq("lesson_id", LESSON_ID)
+        .eq("lesson_id", DEFAULT_LESSON_ID)
         .order("created_at", { ascending: false })
     ]);
 
@@ -60,7 +60,7 @@ export default function ProfilePage() {
       userProgress ?? {
         ...emptyDemoProgress,
         user_id: userId,
-        lesson_id: LESSON_ID
+        lesson_id: DEFAULT_LESSON_ID
       }
     );
     setAttempts((userAttempts as QuizAttempt[]) ?? []);

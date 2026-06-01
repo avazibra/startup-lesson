@@ -67,3 +67,8 @@ export type LessonBundle = {
   lesson: Lesson;
   questions: QuizQuestion[];
 };
+
+export type LessonWithProgress = Lesson & {
+  progress?: LessonProgress | null;
+  is_locked?: boolean;
+};

@@ -2,7 +2,7 @@
 
 import { FormEvent, useEffect, useState } from "react";
 import Link from "next/link";
-import { COURSE_ID, LESSON_ID } from "@/lib/constants";
+import { COURSE_ID, DEFAULT_LESSON_ID } from "@/lib/constants";
 import { demoLessonBundle, demoProfile } from "@/lib/demo-data";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 import type { Lesson, LessonBundle, Profile, QuizQuestion } from "@/lib/types";
@@ -10,6 +10,7 @@ import type { Lesson, LessonBundle, Profile, QuizQuestion } from "@/lib/types";
 export default function AdminPage() {
   const [profile, setProfile] = useState<Profile | null>(isSupabaseConfigured ? null : demoProfile);
   const [draft, setDraft] = useState<LessonBundle>(demoLessonBundle);
+  const [lessons, setLessons] = useState<Lesson[]>([demoLessonBundle.lesson]);
   const [message, setMessage] = useState("");
   const isAdmin = profile?.role === "admin";
 
@@ -52,15 +53,67 @@ export default function AdminPage() {
   async function loadContent() {
     if (!supabase) return;
 
-    const [{ data: course }, { data: lesson }, { data: questions }] = await Promise.all([
+    const [{ data: course }, { data: lesson }, { data: questions }, { data: courseLessons }] = await Promise.all([
       supabase.from("courses").select("*").eq("id", COURSE_ID).single(),
-      supabase.from("lessons").select("*").eq("id", LESSON_ID).single(),
-      supabase.from("quiz_questions").select("*").eq("lesson_id", LESSON_ID).order("question_order")
+      supabase.from("lessons").select("*").eq("id", DEFAULT_LESSON_ID).single(),
+      supabase.from("quiz_questions").select("*").eq("lesson_id", DEFAULT_LESSON_ID).order("question_order"),
+      supabase.from("lessons").select("*").eq("course_id", COURSE_ID).order("lesson_order")
     ]);
 
     if (course && lesson && questions) {
       setDraft({ course, lesson, questions: questions as QuizQuestion[] });
     }
+
+    if (courseLessons) {
+      setLessons(courseLessons as Lesson[]);
+    }
+  }
+
+  async function selectLesson(lessonId: string) {
+    if (!supabase) return;
+
+    const [{ data: lesson }, { data: questions }] = await Promise.all([
+      supabase.from("lessons").select("*").eq("id", lessonId).single(),
+      supabase.from("quiz_questions").select("*").eq("lesson_id", lessonId).order("question_order")
+    ]);
+
+    if (lesson && questions) {
+      setDraft((current) => ({
+        ...current,
+        lesson,
+        questions: questions as QuizQuestion[]
+      }));
+    }
+  }
+
+  function createLessonDraft() {
+    const nextOrder = lessons.length + 1;
+    const id = crypto.randomUUID();
+    setDraft((current) => ({
+      ...current,
+      lesson: {
+        id,
+        course_id: COURSE_ID,
+        title: `Lesson ${nextOrder}`,
+        description: "Describe what learners will understand after this lesson.",
+        youtube_video_id: "jnqSezTbEb8",
+        lesson_order: nextOrder,
+        passing_score: 4,
+        is_published: false
+      },
+      questions: [
+        {
+          id: crypto.randomUUID(),
+          lesson_id: id,
+          prompt: "New question",
+          choice_type: "single",
+          options: ["Option A", "Option B", "Option C", "Option D"],
+          correct_answers: [0],
+          explanation: "Explain why the correct answer is right.",
+          question_order: 1
+        }
+      ]
+    }));
   }
 
   function updateLesson(patch: Partial<Lesson>) {
@@ -155,6 +208,11 @@ export default function AdminPage() {
       }
     }
 
+    const { data: refreshedLessons } = await supabase.from("lessons").select("*").eq("course_id", COURSE_ID).order("lesson_order");
+    if (refreshedLessons) {
+      setLessons(refreshedLessons as Lesson[]);
+    }
+
     setMessage("Content saved.");
   }
 
@@ -180,7 +238,39 @@ export default function AdminPage() {
         </div>
       </header>
 
-      <main className="stack">
+      <main className="grid">
+        <aside className="stack">
+          <section className="card card-pad">
+            <div className="row">
+              <div>
+                <p className="eyebrow">Lessons</p>
+                <h3>Course structure</h3>
+              </div>
+            </div>
+            <div className="lesson-list">
+              {lessons.map((lesson) => (
+                <button
+                  className={`lesson-row ${lesson.id === draft.lesson.id ? "active" : ""}`}
+                  key={lesson.id}
+                  type="button"
+                  onClick={() => selectLesson(lesson.id)}
+                >
+                  <span>
+                    <strong>
+                      {lesson.lesson_order}. {lesson.title}
+                    </strong>
+                    <span>{lesson.is_published ? "Published" : "Draft"}</span>
+                  </span>
+                </button>
+              ))}
+            </div>
+            <button className="secondary" type="button" onClick={createLessonDraft} style={{ marginTop: 16, width: "100%" }}>
+              New lesson
+            </button>
+          </section>
+        </aside>
+
+        <section className="stack">
         <section className="card card-pad">
           <div className="row">
             <div>
@@ -227,6 +317,16 @@ export default function AdminPage() {
             </div>
 
             <div className="split">
+              <div className="field">
+                <label htmlFor="lesson-order">Lesson order</label>
+                <input
+                  id="lesson-order"
+                  min="1"
+                  type="number"
+                  value={draft.lesson.lesson_order}
+                  onChange={(event) => updateLesson({ lesson_order: Number(event.target.value) })}
+                />
+              </div>
               <div className="field">
                 <label htmlFor="passing-score">Passing score</label>
                 <input
@@ -343,6 +443,7 @@ export default function AdminPage() {
             {message}
           </section>
         )}
+        </section>
       </main>
     </div>
   );

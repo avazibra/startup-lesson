@@ -2,10 +2,10 @@
 
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { demoAttempts, demoLessonBundle, demoProfile, emptyDemoProgress } from "@/lib/demo-data";
-import { COURSE_ID, LESSON_ID } from "@/lib/constants";
+import { demoAttempts, demoLessonBundle, demoLessons, demoProfile, emptyDemoProgress } from "@/lib/demo-data";
+import { COURSE_ID, DEFAULT_LESSON_ID } from "@/lib/constants";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
-import type { Lesson, LessonBundle, LessonProgress, Profile, QuizAttempt, QuizQuestion } from "@/lib/types";
+import type { Lesson, LessonBundle, LessonProgress, LessonWithProgress, Profile, QuizAttempt, QuizQuestion } from "@/lib/types";
 
 declare global {
   interface Window {
@@ -43,6 +43,8 @@ type QuizResult = {
 
 export default function Home() {
   const [bundle, setBundle] = useState<LessonBundle>(demoLessonBundle);
+  const [lessons, setLessons] = useState<LessonWithProgress[]>(demoLessons);
+  const [selectedLessonId, setSelectedLessonId] = useState(demoLessonBundle.lesson.id);
   const [profile, setProfile] = useState<Profile | null>(isSupabaseConfigured ? null : demoProfile);
   const [progress, setProgress] = useState<LessonProgress>(emptyDemoProgress);
   const [attempts, setAttempts] = useState<QuizAttempt[]>(demoAttempts);
@@ -85,12 +87,19 @@ export default function Home() {
       }
     });
 
-    void loadContent();
+    void loadContent(selectedLessonId);
 
     return () => {
       listener.subscription.unsubscribe();
     };
   }, []);
+
+  useEffect(() => {
+    if (selectedLessonId === bundle.lesson.id) return;
+    void loadContent(selectedLessonId);
+    setSelectedAnswers({});
+    setQuizResult(null);
+  }, [selectedLessonId]);
 
   useEffect(() => {
     window.onYouTubeIframeAPIReady = () => setPlayerReadyToken((value) => value + 1);
@@ -127,13 +136,21 @@ export default function Home() {
     };
   }, [playerReadyToken, bundle.lesson.youtube_video_id]);
 
-  async function loadContent() {
-    if (!supabase) return;
+  async function loadContent(targetLessonId = selectedLessonId) {
+    if (!supabase) {
+      const selectedDemoLesson = demoLessons.find((lesson) => lesson.id === targetLessonId) ?? demoLessons[0];
+      setBundle({
+        ...demoLessonBundle,
+        lesson: selectedDemoLesson
+      });
+      return;
+    }
 
-    const [{ data: course }, { data: lesson }, { data: questions }] = await Promise.all([
+    const [{ data: course }, { data: lesson }, { data: questions }, { data: courseLessons }] = await Promise.all([
       supabase.from("courses").select("*").eq("id", COURSE_ID).single(),
-      supabase.from("lessons").select("*").eq("id", LESSON_ID).single(),
-      supabase.from("quiz_questions").select("*").eq("lesson_id", LESSON_ID).order("question_order")
+      supabase.from("lessons").select("*").eq("id", targetLessonId).single(),
+      supabase.from("quiz_questions").select("*").eq("lesson_id", targetLessonId).order("question_order"),
+      supabase.from("lessons").select("*").eq("course_id", COURSE_ID).order("lesson_order")
     ]);
 
     if (course && lesson && questions) {
@@ -143,6 +160,10 @@ export default function Home() {
         questions: questions as QuizQuestion[]
       });
     }
+
+    if (courseLessons) {
+      await loadLessonList(courseLessons as LessonWithProgress[]);
+    }
   }
 
   async function loadUserData(userId: string, fallbackEmail: string | null) {
@@ -150,12 +171,12 @@ export default function Home() {
 
     const [{ data: userProfile }, { data: userProgress }, { data: userAttempts }] = await Promise.all([
       supabase.from("profiles").select("*").eq("id", userId).single(),
-      supabase.from("lesson_progress").select("*").eq("user_id", userId).eq("lesson_id", LESSON_ID).maybeSingle(),
+      supabase.from("lesson_progress").select("*").eq("user_id", userId).eq("lesson_id", selectedLessonId).maybeSingle(),
       supabase
         .from("quiz_attempts")
         .select("*")
         .eq("user_id", userId)
-        .eq("lesson_id", LESSON_ID)
+        .eq("lesson_id", selectedLessonId)
         .order("created_at", { ascending: false })
     ]);
 
@@ -171,10 +192,44 @@ export default function Home() {
       userProgress ?? {
         ...emptyDemoProgress,
         user_id: userId,
-        lesson_id: LESSON_ID
+        lesson_id: selectedLessonId
       }
     );
     setAttempts((userAttempts as QuizAttempt[]) ?? []);
+
+    if (supabase) {
+      const { data: courseLessons } = await supabase.from("lessons").select("*").eq("course_id", COURSE_ID).order("lesson_order");
+      if (courseLessons) await loadLessonList(courseLessons as LessonWithProgress[], userId);
+    }
+  }
+
+  async function loadLessonList(courseLessons: LessonWithProgress[], userId = profile?.id) {
+    if (!supabase || !userId) {
+      setLessons(courseLessons.map((lesson, index) => ({ ...lesson, is_locked: index > 0 })));
+      return;
+    }
+
+    const { data: allProgress } = await supabase
+      .from("lesson_progress")
+      .select("*")
+      .eq("user_id", userId)
+      .in(
+        "lesson_id",
+        courseLessons.map((lesson) => lesson.id)
+      );
+
+    const progressByLesson = new Map((allProgress as LessonProgress[] | null)?.map((item) => [item.lesson_id, item]) ?? []);
+    const enriched = courseLessons.map((lesson, index) => {
+      const previousLesson = index > 0 ? courseLessons[index - 1] : null;
+      const previousProgress = previousLesson ? progressByLesson.get(previousLesson.id) : null;
+      return {
+        ...lesson,
+        progress: progressByLesson.get(lesson.id) ?? null,
+        is_locked: index > 0 && !previousProgress?.quiz_passed
+      };
+    });
+
+    setLessons(enriched);
   }
 
   function handlePlayerStateChange(event: { data: number }) {
@@ -395,6 +450,18 @@ export default function Home() {
 
       <main className="grid">
         <section className="stack">
+          <LessonList
+            lessons={lessons}
+            activeLessonId={bundle.lesson.id}
+            onSelectLesson={(lesson) => {
+              if (lesson.is_locked) {
+                setStatusMessage("Pass the previous lesson quiz before opening this lesson.");
+                return;
+              }
+              setSelectedLessonId(lesson.id);
+            }}
+          />
+
           <article className="card">
             <div className="hero-copy">
               <p className="eyebrow">Video lesson</p>
@@ -470,6 +537,48 @@ export default function Home() {
         </div>
       )}
     </div>
+  );
+}
+
+function LessonList({
+  lessons,
+  activeLessonId,
+  onSelectLesson
+}: {
+  lessons: LessonWithProgress[];
+  activeLessonId: string;
+  onSelectLesson: (lesson: LessonWithProgress) => void;
+}) {
+  return (
+    <section className="card card-pad" aria-labelledby="lessons-title">
+      <div className="row">
+        <div>
+          <p className="eyebrow">Course lessons</p>
+          <h3 id="lessons-title">Startup Fundamentals</h3>
+        </div>
+      </div>
+      <div className="lesson-list">
+        {lessons.map((lesson) => (
+          <button
+            className={`lesson-row ${lesson.id === activeLessonId ? "active" : ""}`}
+            disabled={lesson.is_locked}
+            key={lesson.id}
+            type="button"
+            onClick={() => onSelectLesson(lesson)}
+          >
+            <span>
+              <strong>
+                {lesson.lesson_order}. {lesson.title}
+              </strong>
+              <span>{lesson.progress?.quiz_passed ? "Completed" : lesson.is_locked ? "Locked" : "Available"}</span>
+            </span>
+            <span className={`pill ${lesson.progress?.quiz_passed ? "success" : lesson.is_locked ? "warning" : ""}`}>
+              {lesson.progress?.quiz_passed ? "Done" : lesson.is_locked ? "Locked" : "Open"}
+            </span>
+          </button>
+        ))}
+      </div>
+    </section>
   );
 }
 

@@ -219,6 +219,34 @@ set title = excluded.title,
     passing_score = excluded.passing_score,
     is_published = excluded.is_published;
 
+insert into public.lessons (
+  id,
+  course_id,
+  title,
+  description,
+  youtube_video_id,
+  lesson_order,
+  passing_score,
+  is_published
+)
+values (
+  '22222222-2222-2222-2222-222222222223',
+  '11111111-1111-1111-1111-111111111111',
+  'Finding Your First Customers',
+  'Learn how early founders use warm introductions, narrow customer segments, and fast conversations to find first customers.',
+  'jnqSezTbEb8',
+  2,
+  4,
+  true
+)
+on conflict (id) do update
+set title = excluded.title,
+    description = excluded.description,
+    youtube_video_id = excluded.youtube_video_id,
+    lesson_order = excluded.lesson_order,
+    passing_score = excluded.passing_score,
+    is_published = excluded.is_published;
+
 insert into public.quiz_questions (
   id,
   lesson_id,

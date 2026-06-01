@@ -1,4 +1,4 @@
-import type { LessonBundle, LessonProgress, Profile, QuizAttempt } from "./types";
+import type { LessonBundle, LessonProgress, LessonWithProgress, Profile, QuizAttempt } from "./types";
 
 export const demoLessonBundle: LessonBundle = {
   course: {
@@ -114,3 +114,23 @@ export const emptyDemoProgress: LessonProgress = {
 };
 
 export const demoAttempts: QuizAttempt[] = [];
+
+export const demoLessons: LessonWithProgress[] = [
+  {
+    ...demoLessonBundle.lesson,
+    progress: emptyDemoProgress,
+    is_locked: false
+  },
+  {
+    id: "demo-lesson-2",
+    course_id: "demo-course",
+    title: "Finding Your First Customers",
+    description: "A placeholder lesson for the next step in Startup Fundamentals.",
+    youtube_video_id: "jnqSezTbEb8",
+    lesson_order: 2,
+    passing_score: 4,
+    is_published: true,
+    progress: null,
+    is_locked: true
+  }
+];

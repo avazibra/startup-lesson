@@ -526,6 +526,41 @@ fieldset {
   background: var(--surface-muted);
 }
 
+.lesson-list {
+  display: grid;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.lesson-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  min-height: 64px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface-muted);
+  color: var(--text);
+  text-align: left;
+}
+
+.lesson-row.active {
+  border-color: #bfdbfe;
+  background: #eff6ff;
+}
+
+.lesson-row > span:first-child {
+  display: grid;
+  gap: 2px;
+}
+
+.lesson-row > span:first-child span {
+  color: var(--muted);
+  font-size: 0.84rem;
+}
+
 .sr-only {
   position: absolute;
   width: 1px;
