@@ -39,7 +39,11 @@ export async function POST(request: NextRequest) {
   }
 
   const serviceClient = createClient(supabaseUrl, serviceRoleKey);
-  const [{ data: lesson }, { data: progress }, { data: questions }] = await Promise.all([
+  const [
+    { data: lesson, error: lessonError },
+    { data: progress, error: progressLookupError },
+    { data: questions, error: questionsError }
+  ] = await Promise.all([
     serviceClient
       .from("lessons")
       .select("id, passing_score, is_published, archived_at")
@@ -57,6 +61,18 @@ export async function POST(request: NextRequest) {
       .eq("lesson_id", body.lessonId)
       .order("question_order")
   ]);
+
+  if (lessonError) {
+    return NextResponse.json({ error: `Could not load lesson: ${lessonError.message}` }, { status: 500 });
+  }
+
+  if (progressLookupError) {
+    return NextResponse.json({ error: `Could not load progress: ${progressLookupError.message}` }, { status: 500 });
+  }
+
+  if (questionsError) {
+    return NextResponse.json({ error: `Could not load quiz questions: ${questionsError.message}` }, { status: 500 });
+  }
 
   if (!lesson || !lesson.is_published || lesson.archived_at) {
     return NextResponse.json({ error: "This lesson is not available." }, { status: 404 });
@@ -120,7 +136,10 @@ export async function POST(request: NextRequest) {
   ]);
 
   if (attemptError || progressError) {
-    return NextResponse.json({ error: "Could not save quiz result." }, { status: 500 });
+    return NextResponse.json(
+      { error: attemptError?.message ?? progressError?.message ?? "Could not save quiz result." },
+      { status: 500 }
+    );
   }
 
   return NextResponse.json({
