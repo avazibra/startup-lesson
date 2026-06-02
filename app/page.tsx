@@ -64,6 +64,11 @@ export default function Home() {
   const timerRef = useRef<number | null>(null);
 
   const videoCompleted = progress.video_completed;
+  const videoStatusLabel = videoCompleted
+    ? "Video completed"
+    : progress.video_progress_percent > 0
+      ? "Video in progress"
+      : "Watch to unlock quiz";
   const quizUnlocked = videoCompleted;
   const quizPassed = progress.quiz_passed;
   const nextLessonUnlocked = quizPassed;
@@ -518,8 +523,8 @@ export default function Home() {
       <header className="topbar" aria-label="Course header">
         <div className="topbar-inner">
           <div className="brand">
-            <p className="eyebrow">{bundle.course.title}</p>
-            <h1>{bundle.lesson.title}</h1>
+            <p className="eyebrow">Course</p>
+            <h1>{bundle.course.title}</h1>
           </div>
           <div className="top-actions">
             <ThemeToggle />
@@ -572,11 +577,13 @@ export default function Home() {
             <div className="video-meta">
               <div className="row">
                 <span className={`pill ${videoCompleted ? "success" : "warning"}`}>
-                  {videoCompleted ? "Video completed" : "Video in progress"}
+                  {videoStatusLabel}
                 </span>
-                <button className="secondary" type="button" onClick={completeVideo}>
-                  Demo only: mark video complete
-                </button>
+                {process.env.NODE_ENV === "development" && (
+                  <button className="secondary" type="button" onClick={completeVideo}>
+                    Demo only: mark video complete
+                  </button>
+                )}
               </div>
               <div>
                 <div className="progress-label">
@@ -839,6 +846,7 @@ function QuizSection({
         <div>
           <h3 id="quiz-title">Lesson quiz</h3>
           <p className="muted">Passing requires {passingScore} correct answers.</p>
+          <p className="muted">Quiz language: Uzbek.</p>
         </div>
         <span className={`pill ${quizUnlocked ? "success" : "warning"}`}>{quizUnlocked ? "Unlocked" : "Locked"}</span>
       </div>

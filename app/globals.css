@@ -69,8 +69,13 @@ body {
   background: var(--bg);
   color: var(--text);
   font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-size: 16px;
   line-height: 1.5;
   overflow-x: hidden;
+}
+
+p {
+  font-size: 1rem;
 }
 
 button,
@@ -81,7 +86,7 @@ textarea {
 }
 
 button {
-  min-height: 42px;
+  min-height: 44px;
   border: 0;
   border-radius: var(--radius);
   cursor: pointer;
