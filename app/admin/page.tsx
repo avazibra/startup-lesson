@@ -15,6 +15,7 @@ export default function AdminPage() {
   const [message, setMessage] = useState("");
   const [validationIssues, setValidationIssues] = useState<string[]>([]);
   const [activeEditorTab, setActiveEditorTab] = useState<"lesson" | "quiz" | "preview">("lesson");
+  const [isArchiveConfirmOpen, setIsArchiveConfirmOpen] = useState(false);
   const isAdmin = profile?.role === "admin";
   const isDemoAdminEnabled = !isSupabaseConfigured && process.env.NEXT_PUBLIC_ENABLE_DEMO_ADMIN === "true";
   const canEditContent = isAdmin || isDemoAdminEnabled;
@@ -76,6 +77,7 @@ export default function AdminPage() {
   }
 
   async function selectLesson(lessonId: string) {
+    setIsArchiveConfirmOpen(false);
     if (!supabase) return;
 
     const [{ data: lesson }, { data: questions }] = await Promise.all([
@@ -93,6 +95,7 @@ export default function AdminPage() {
   }
 
   function createLessonDraft() {
+    setIsArchiveConfirmOpen(false);
     const nextOrder = lessons.length + 1;
     const id = crypto.randomUUID();
     setDraft((current) => ({
@@ -343,10 +346,25 @@ export default function AdminPage() {
     setMessage("Content saved.");
   }
 
+  function requestArchiveLesson() {
+    if (draft.lesson.archived_at) {
+      void toggleArchiveLesson();
+      return;
+    }
+
+    if (isUnsavedLesson) {
+      setMessage("Save this lesson before archiving it.");
+      return;
+    }
+
+    setIsArchiveConfirmOpen(true);
+  }
+
   async function toggleArchiveLesson() {
     const nextArchivedAt = draft.lesson.archived_at ? null : new Date().toISOString();
     const nextLesson = { ...draft.lesson, archived_at: nextArchivedAt };
 
+    setIsArchiveConfirmOpen(false);
     setDraft((current) => ({
       ...current,
       lesson: nextLesson
@@ -720,6 +738,23 @@ export default function AdminPage() {
                 </div>
               )}
 
+              {isArchiveConfirmOpen && (
+                <div className="archive-confirm" role="alert">
+                  <div>
+                    <strong>Archive this lesson?</strong>
+                    <p className="muted">Archived lessons are hidden from learners, but quiz attempts and progress stay intact.</p>
+                  </div>
+                  <div className="archive-confirm-actions">
+                    <button className="secondary compact-button" type="button" onClick={() => setIsArchiveConfirmOpen(false)}>
+                      Cancel
+                    </button>
+                    <button className="danger compact-button" type="button" onClick={toggleArchiveLesson}>
+                      Archive lesson
+                    </button>
+                  </div>
+                </div>
+              )}
+
               <div className="form-actions">
                 <div className="form-actions-meta">
                   <strong>{activeEditorTab === "lesson" ? "Lesson setup" : activeEditorTab === "quiz" ? "Quiz setup" : "Preview"}</strong>
@@ -731,7 +766,7 @@ export default function AdminPage() {
                         : getLessonStatus(draft.lesson)}
                   </span>
                 </div>
-                <button className={draft.lesson.archived_at ? "secondary" : "danger"} type="button" onClick={toggleArchiveLesson}>
+                <button className={draft.lesson.archived_at ? "secondary" : "danger"} type="button" onClick={requestArchiveLesson}>
                   {draft.lesson.archived_at ? "Restore lesson" : "Archive lesson"}
                 </button>
                 <button className="secondary" type="button" onClick={createLessonDraft}>
