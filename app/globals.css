@@ -251,6 +251,15 @@ h3 {
   min-width: 0;
 }
 
+
+.status-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 20px;
+}
+
 .stack {
   display: grid;
   gap: 20px;
@@ -1416,6 +1425,11 @@ fieldset {
   .certificate-signoff,
   .certificate-verification-box {
     text-align: center;
+  }
+
+  .status-card {
+    align-items: stretch;
+    flex-direction: column;
   }
 
   .archive-confirm {

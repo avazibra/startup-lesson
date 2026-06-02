@@ -54,6 +54,7 @@ export default function Home() {
   const [attempts, setAttempts] = useState<QuizAttempt[]>(demoAttempts);
   const [selectedAnswers, setSelectedAnswers] = useState<Record<string, number[]>>({});
   const [quizResult, setQuizResult] = useState<QuizResult[] | null>(null);
+  const [issuedCertificate, setIssuedCertificate] = useState<Certificate | null>(null);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [authMessage, setAuthMessage] = useState("");
@@ -105,6 +106,7 @@ export default function Home() {
     }
     setSelectedAnswers({});
     setQuizResult(null);
+    setIssuedCertificate(null);
   }, [selectedLessonId]);
 
   useEffect(() => {
@@ -451,6 +453,7 @@ export default function Home() {
       }
 
       setQuizResult(payload.results);
+      setIssuedCertificate(payload.certificate ?? null);
       setProgress(payload.progress);
       setAttempts((current) => [payload.attempt as QuizAttempt, ...current]);
       void loadUserData(profile.id, profile.email);
@@ -499,6 +502,7 @@ export default function Home() {
   function retakeQuiz() {
     setSelectedAnswers({});
     setQuizResult(null);
+    setIssuedCertificate(null);
     setStatusMessage("Quiz reset. Video completion is still saved.");
   }
 
@@ -626,8 +630,13 @@ export default function Home() {
         {statusMessage}
       </div>
       {statusMessage && (
-        <div className="card card-pad" style={{ marginTop: 20 }} role="status">
-          {statusMessage}
+        <div className="card card-pad status-card" role="status">
+          <span>{statusMessage}</span>
+          {issuedCertificate && (
+            <Link className="secondary compact-button" href={`/certificate/${issuedCertificate.verification_code}`}>
+              View certificate
+            </Link>
+          )}
         </div>
       )}
     </div>
