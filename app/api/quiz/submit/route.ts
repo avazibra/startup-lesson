@@ -1,6 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 import { NextRequest, NextResponse } from "next/server";
-import type { LessonProgress, QuizAttempt, QuizQuestion } from "@/lib/types";
+import { COURSE_ID } from "@/lib/constants";
+import type { Certificate, LessonProgress, Profile, QuizAttempt, QuizQuestion } from "@/lib/types";
 
 type SubmitQuizBody = {
   lessonId?: string;
@@ -46,7 +47,7 @@ export async function POST(request: NextRequest) {
   ] = await Promise.all([
     serviceClient
       .from("lessons")
-      .select("id, passing_score, is_published, archived_at")
+      .select("id, course_id, title, passing_score, is_published, archived_at, provides_certificate")
       .eq("id", body.lessonId)
       .single(),
     serviceClient
@@ -142,9 +143,40 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  let certificate: Certificate | null = null;
+  if (passed && lesson.provides_certificate) {
+    const [{ data: course }, { data: profile }, { data: existingCertificate }] = await Promise.all([
+      serviceClient.from("courses").select("id, title").eq("id", COURSE_ID).single(),
+      serviceClient.from("profiles").select("id, full_name, email").eq("id", user.id).single(),
+      serviceClient.from("certificates").select("*").eq("user_id", user.id).eq("lesson_id", body.lessonId).maybeSingle()
+    ]);
+
+    if (existingCertificate) {
+      certificate = existingCertificate as Certificate;
+    } else if (course && profile) {
+      const learnerProfile = profile as Pick<Profile, "full_name" | "email">;
+      const recipientName = learnerProfile.full_name?.trim() || learnerProfile.email?.split("@")[0] || "Learner";
+      const { data: issuedCertificate } = await serviceClient
+        .from("certificates")
+        .insert({
+          user_id: user.id,
+          lesson_id: lesson.id,
+          course_id: lesson.course_id,
+          recipient_name: recipientName,
+          lesson_title: lesson.title,
+          course_title: course.title
+        })
+        .select("*")
+        .single();
+
+      certificate = (issuedCertificate as Certificate | null) ?? null;
+    }
+  }
+
   return NextResponse.json({
     attempt,
     progress: updatedProgress as LessonProgress,
-    results
+    results,
+    certificate
   });
 }

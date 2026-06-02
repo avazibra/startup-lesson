@@ -5,7 +5,7 @@ import Link from "next/link";
 import { demoAttempts, demoLessonBundle, demoLessons, demoProfile, emptyDemoProgress } from "@/lib/demo-data";
 import { COURSE_ID, DEFAULT_LESSON_ID } from "@/lib/constants";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
-import type { Lesson, LessonBundle, LessonProgress, LessonWithProgress, Profile, QuizAttempt, QuizQuestion } from "@/lib/types";
+import type { Certificate, Lesson, LessonBundle, LessonProgress, LessonWithProgress, Profile, QuizAttempt, QuizQuestion } from "@/lib/types";
 import { ThemeToggle } from "./theme-toggle";
 
 declare global {
@@ -442,6 +442,7 @@ export default function Home() {
         attempt?: QuizAttempt;
         progress?: LessonProgress;
         results?: QuizResult[];
+        certificate?: Certificate | null;
       };
 
       if (!response.ok || !payload.attempt || !payload.progress || !payload.results) {
@@ -453,7 +454,13 @@ export default function Home() {
       setProgress(payload.progress);
       setAttempts((current) => [payload.attempt as QuizAttempt, ...current]);
       void loadUserData(profile.id, profile.email);
-      setStatusMessage(payload.attempt.passed ? "Lesson completed. Next lesson unlocked." : "Quiz failed. Review explanations and retake.");
+      setStatusMessage(
+        payload.attempt.passed
+          ? payload.certificate
+            ? "Lesson completed. Certificate issued."
+            : "Lesson completed. Next lesson unlocked."
+          : "Quiz failed. Review explanations and retake."
+      );
       return;
     }
 

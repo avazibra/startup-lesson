@@ -84,6 +84,19 @@ create table if not exists public.quiz_attempts (
   created_at timestamptz not null default now()
 );
 
+create table if not exists public.certificates (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users(id) on delete cascade,
+  lesson_id uuid not null references public.lessons(id) on delete cascade,
+  course_id uuid not null references public.courses(id) on delete cascade,
+  recipient_name text not null,
+  lesson_title text not null,
+  course_title text not null,
+  verification_code text not null unique default encode(gen_random_bytes(12), 'hex'),
+  issued_at timestamptz not null default now(),
+  unique(user_id, lesson_id)
+);
+
 create or replace function public.handle_new_user()
 returns trigger
 language plpgsql
@@ -166,6 +179,7 @@ alter table public.lessons enable row level security;
 alter table public.quiz_questions enable row level security;
 alter table public.lesson_progress enable row level security;
 alter table public.quiz_attempts enable row level security;
+alter table public.certificates enable row level security;
 
 drop policy if exists "profiles_read_self_or_admin" on public.profiles;
 create policy "profiles_read_self_or_admin"
@@ -226,6 +240,18 @@ create policy "attempts_read_own_or_admin"
   using (user_id = auth.uid() or public.is_admin());
 
 drop policy if exists "attempts_insert_own" on public.quiz_attempts;
+
+drop policy if exists "certificates_public_read" on public.certificates;
+drop policy if exists "certificates_read_own_or_admin" on public.certificates;
+create policy "certificates_read_own_or_admin"
+  on public.certificates for select
+  using (user_id = auth.uid() or public.is_admin());
+
+drop policy if exists "certificates_admin_write" on public.certificates;
+create policy "certificates_admin_write"
+  on public.certificates for all
+  using (public.is_admin())
+  with check (public.is_admin());
 
 insert into public.courses (id, title, description)
 values (

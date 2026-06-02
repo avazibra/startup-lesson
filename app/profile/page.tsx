@@ -5,16 +5,20 @@ import Link from "next/link";
 import { COURSE_ID } from "@/lib/constants";
 import { demoAttempts, demoLessons, demoProfile } from "@/lib/demo-data";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
-import type { LessonProgress, LessonWithProgress, Profile, QuizAttempt } from "@/lib/types";
+import type { Certificate, LessonProgress, LessonWithProgress, Profile, QuizAttempt } from "@/lib/types";
 import { ThemeToggle } from "../theme-toggle";
 
 export default function ProfilePage() {
   const [profile, setProfile] = useState<Profile | null>(isSupabaseConfigured ? null : demoProfile);
   const [lessons, setLessons] = useState<LessonWithProgress[]>(isSupabaseConfigured ? [] : demoLessons);
   const [attempts, setAttempts] = useState<QuizAttempt[]>(isSupabaseConfigured ? [] : demoAttempts);
+  const [certificates, setCertificates] = useState<Certificate[]>([]);
+  const [certificateMessage, setCertificateMessage] = useState("");
+  const [issuingLessonId, setIssuingLessonId] = useState<string | null>(null);
   const completedLessons = lessons.filter((lesson) => lesson.progress?.quiz_passed).length;
   const progressPercent = lessons.length ? Math.round((completedLessons / lessons.length) * 100) : 0;
   const lessonTitleById = new Map(lessons.map((lesson) => [lesson.id, lesson.title]));
+  const certificateByLessonId = new Map(certificates.map((certificate) => [certificate.lesson_id, certificate]));
 
   useEffect(() => {
     if (!supabase) return;
@@ -32,6 +36,7 @@ export default function ProfilePage() {
         setProfile(null);
         setLessons([]);
         setAttempts([]);
+        setCertificates([]);
       }
     });
 
@@ -41,16 +46,18 @@ export default function ProfilePage() {
   async function loadUserData(userId: string, fallbackEmail: string | null) {
     if (!supabase) return;
 
-    const [{ data: userProfile }, { data: courseLessons }, { data: userProgress }, { data: userAttempts }] = await Promise.all([
-      supabase.from("profiles").select("*").eq("id", userId).single(),
-      supabase.from("lessons").select("*").eq("course_id", COURSE_ID).eq("is_published", true).order("lesson_order"),
-      supabase.from("lesson_progress").select("*").eq("user_id", userId),
-      supabase
-        .from("quiz_attempts")
-        .select("*")
-        .eq("user_id", userId)
-        .order("created_at", { ascending: false })
-    ]);
+    const [{ data: userProfile }, { data: courseLessons }, { data: userProgress }, { data: userAttempts }, { data: userCertificates }] =
+      await Promise.all([
+        supabase.from("profiles").select("*").eq("id", userId).single(),
+        supabase.from("lessons").select("*").eq("course_id", COURSE_ID).eq("is_published", true).order("lesson_order"),
+        supabase.from("lesson_progress").select("*").eq("user_id", userId),
+        supabase
+          .from("quiz_attempts")
+          .select("*")
+          .eq("user_id", userId)
+          .order("created_at", { ascending: false }),
+        supabase.from("certificates").select("*").eq("user_id", userId).order("issued_at", { ascending: false })
+      ]);
 
     setProfile(
       userProfile ?? {
@@ -71,6 +78,47 @@ export default function ProfilePage() {
         }))
     );
     setAttempts((userAttempts as QuizAttempt[]) ?? []);
+    setCertificates((userCertificates as Certificate[]) ?? []);
+  }
+
+  async function issueCertificate(lessonId: string) {
+    if (!supabase || !profile) return;
+
+    setIssuingLessonId(lessonId);
+    setCertificateMessage("");
+
+    const {
+      data: { session }
+    } = await supabase.auth.getSession();
+
+    if (!session?.access_token) {
+      setCertificateMessage("Your session expired. Sign in again before issuing a certificate.");
+      setIssuingLessonId(null);
+      return;
+    }
+
+    const response = await fetch("/api/certificates/issue", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${session.access_token}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ lessonId })
+    });
+
+    const payload = (await response.json()) as { certificate?: Certificate; error?: string };
+    setIssuingLessonId(null);
+
+    if (!response.ok || !payload.certificate) {
+      setCertificateMessage(payload.error ?? "Could not issue certificate.");
+      return;
+    }
+
+    setCertificates((current) => {
+      const withoutDuplicate = current.filter((certificate) => certificate.id !== payload.certificate?.id);
+      return [payload.certificate as Certificate, ...withoutDuplicate];
+    });
+    setCertificateMessage("Certificate issued.");
   }
 
   return (
@@ -130,16 +178,30 @@ export default function ProfilePage() {
                       {lesson.lesson_order}. {lesson.title}
                     </strong>
                     <p className="muted">{lesson.progress?.video_progress_percent ?? 0}% watched</p>
+                    {lesson.provides_certificate && <p className="certificate-line">Certificate available</p>}
                   </div>
-                  <span className={`pill ${lesson.progress?.quiz_passed ? "success" : ""}`}>
-                    {lesson.progress?.quiz_passed ? "Completed" : index === 0 || lessons[index - 1]?.progress?.quiz_passed ? "In progress" : "Locked"}
-                  </span>
+                  <div className="lesson-history-actions">
+                    <span className={`pill ${lesson.progress?.quiz_passed ? "success" : ""}`}>
+                      {lesson.progress?.quiz_passed ? "Completed" : index === 0 || lessons[index - 1]?.progress?.quiz_passed ? "In progress" : "Locked"}
+                    </span>
+                    {lesson.provides_certificate && lesson.progress?.quiz_passed && certificateByLessonId.get(lesson.id) && (
+                      <Link className="secondary compact-button" href={`/certificate/${certificateByLessonId.get(lesson.id)?.verification_code}`}>
+                        View certificate
+                      </Link>
+                    )}
+                    {lesson.provides_certificate && lesson.progress?.quiz_passed && !certificateByLessonId.get(lesson.id) && (
+                      <button className="primary compact-button" disabled={issuingLessonId === lesson.id} type="button" onClick={() => issueCertificate(lesson.id)}>
+                        {issuingLessonId === lesson.id ? "Issuing..." : "Issue certificate"}
+                      </button>
+                    )}
+                  </div>
                 </li>
               ))}
             </ul>
           ) : (
             <p className="muted">No published lessons yet.</p>
           )}
+          {certificateMessage && <p className="muted" style={{ marginTop: 16 }}>{certificateMessage}</p>}
         </section>
 
         <section className="card card-pad">

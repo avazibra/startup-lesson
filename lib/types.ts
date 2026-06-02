@@ -64,6 +64,18 @@ export type Profile = {
   created_at?: string;
 };
 
+export type Certificate = {
+  id: string;
+  user_id: string;
+  lesson_id: string;
+  course_id: string;
+  recipient_name: string;
+  lesson_title: string;
+  course_title: string;
+  verification_code: string;
+  issued_at: string;
+};
+
 export type LessonBundle = {
   course: Course;
   lesson: Lesson;
