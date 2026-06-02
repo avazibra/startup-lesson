@@ -59,6 +59,7 @@ export default function Home() {
   const [password, setPassword] = useState("");
   const [authMessage, setAuthMessage] = useState("");
   const [statusMessage, setStatusMessage] = useState("");
+  const [playerRequested, setPlayerRequested] = useState(false);
   const [playerReadyToken, setPlayerReadyToken] = useState(0);
   const playerRef = useRef<YouTubePlayer | null>(null);
   const timerRef = useRef<number | null>(null);
@@ -112,9 +113,17 @@ export default function Home() {
     setSelectedAnswers({});
     setQuizResult(null);
     setIssuedCertificate(null);
+    setPlayerRequested(false);
   }, [selectedLessonId]);
 
   useEffect(() => {
+    if (!playerRequested) {
+      stopProgressPolling();
+      playerRef.current?.destroy?.();
+      playerRef.current = null;
+      return;
+    }
+
     window.onYouTubeIframeAPIReady = () => setPlayerReadyToken((value) => value + 1);
 
     if (!document.querySelector('script[src="https://www.youtube.com/iframe_api"]')) {
@@ -124,15 +133,16 @@ export default function Home() {
     } else if (window.YT) {
       setPlayerReadyToken((value) => value + 1);
     }
-  }, []);
+  }, [playerRequested]);
 
   useEffect(() => {
-    if (!window.YT) return;
+    if (!playerRequested || !window.YT) return;
 
     playerRef.current?.destroy?.();
     playerRef.current = new window.YT.Player("player", {
       videoId: bundle.lesson.youtube_video_id,
       playerVars: {
+        autoplay: 1,
         rel: 0,
         modestbranding: 1,
         playsinline: 1
@@ -147,7 +157,7 @@ export default function Home() {
       playerRef.current?.destroy?.();
       playerRef.current = null;
     };
-  }, [playerReadyToken, bundle.lesson.youtube_video_id]);
+  }, [playerRequested, playerReadyToken, bundle.lesson.youtube_video_id]);
 
   async function loadContent(targetLessonId = selectedLessonId) {
     if (!supabase) {
@@ -572,7 +582,26 @@ export default function Home() {
               )}
             </div>
             <div className="video-frame">
-              <div id="player" aria-label="YouTube lesson video" />
+              {playerRequested ? (
+                <div id="player" aria-label="YouTube lesson video" />
+              ) : (
+                <button
+                  className="video-facade"
+                  type="button"
+                  onClick={() => setPlayerRequested(true)}
+                  aria-label={`Play ${bundle.lesson.title}`}
+                >
+                  <img
+                    src={`https://i.ytimg.com/vi/${bundle.lesson.youtube_video_id}/hqdefault.jpg`}
+                    alt=""
+                    loading="eager"
+                  />
+                  <span className="video-facade-overlay" aria-hidden="true">
+                    <span className="video-play-icon" />
+                  </span>
+                  <span className="video-facade-copy">Start lesson video</span>
+                </button>
+              )}
             </div>
             <div className="video-meta">
               <div className="row">
