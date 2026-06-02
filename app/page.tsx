@@ -839,6 +839,16 @@ function QuizSection({
           <strong>Quiz locked</strong>
           <span>Complete the video lesson before answering the quiz.</span>
         </div>
+      ) : quizPassed ? (
+        <div className="quiz-complete-panel" role="status">
+          <strong>Quiz passed</strong>
+          <p className="muted">This lesson is complete. The answer form is hidden because your passing result is already saved.</p>
+          {resultSummary && (
+            <p className="muted">
+              Latest score: {resultSummary.score} out of {questions.length}
+            </p>
+          )}
+        </div>
       ) : (
         <form onSubmit={onSubmit} style={{ marginTop: 18 }}>
           {questions.map((question, questionIndex) => (
@@ -856,7 +866,6 @@ function QuizSection({
                         type={question.choice_type === "multiple" ? "checkbox" : "radio"}
                         name={question.id}
                         checked={checked}
-                        disabled={quizPassed}
                         onChange={() => onToggleAnswer(question, optionIndex)}
                       />
                       <span>{option}</span>
@@ -868,14 +877,14 @@ function QuizSection({
           ))}
           <div className="row" style={{ marginTop: 18 }}>
             <p className="muted">You can change answers before submitting.</p>
-            <button className="primary" type="submit" disabled={quizPassed}>
+            <button className="primary" type="submit">
               Submit quiz
             </button>
           </div>
         </form>
       )}
 
-      {resultSummary && quizResult && (
+      {resultSummary && quizResult && !quizPassed && (
         <div style={{ marginTop: 20 }}>
           <div className={`result ${resultSummary.passed ? "pass" : "fail"}`}>
             <strong>{resultSummary.passed ? "Lesson completed" : "Retake required"}</strong>
