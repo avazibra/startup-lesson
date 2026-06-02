@@ -75,6 +75,8 @@ export default function Home() {
   const nextLessonUnlocked = quizPassed;
   const lessonProgressPercent = nextLessonUnlocked ? 100 : quizUnlocked ? 50 : 0;
   const isAdmin = profile?.role === "admin";
+  const currentLessonIndex = lessons.findIndex((lesson) => lesson.id === bundle.lesson.id);
+  const nextLesson = currentLessonIndex >= 0 ? lessons[currentLessonIndex + 1] ?? null : null;
 
   useEffect(() => {
     if (!supabase) return;
@@ -521,6 +523,12 @@ export default function Home() {
     setStatusMessage("Quiz reset. Video completion is still saved.");
   }
 
+  function openNextLesson() {
+    if (!nextLesson) return;
+    setSelectedLessonId(nextLesson.id);
+    setStatusMessage(`Opened next lesson: ${nextLesson.title}.`);
+  }
+
   const resultSummary = useMemo(() => {
     if (!quizResult) return null;
     const score = quizResult.filter((result) => result.correct).length;
@@ -634,6 +642,10 @@ export default function Home() {
             selectedAnswers={selectedAnswers}
             quizResult={quizResult}
             resultSummary={resultSummary}
+            providesCertificate={bundle.lesson.provides_certificate}
+            issuedCertificate={issuedCertificate}
+            nextLessonTitle={nextLesson?.title ?? null}
+            onNextLesson={nextLesson ? openNextLesson : undefined}
             onToggleAnswer={toggleAnswer}
             onSubmit={submitQuiz}
             onRetake={retakeQuiz}
@@ -856,6 +868,10 @@ function QuizSection({
   selectedAnswers,
   quizResult,
   resultSummary,
+  providesCertificate,
+  issuedCertificate,
+  nextLessonTitle,
+  onNextLesson,
   onToggleAnswer,
   onSubmit,
   onRetake
@@ -867,6 +883,10 @@ function QuizSection({
   selectedAnswers: Record<string, number[]>;
   quizResult: QuizResult[] | null;
   resultSummary: { score: number; passed: boolean } | null;
+  providesCertificate: boolean;
+  issuedCertificate: Certificate | null;
+  nextLessonTitle: string | null;
+  onNextLesson?: () => void;
   onToggleAnswer: (question: QuizQuestion, optionIndex: number) => void;
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
   onRetake: () => void;
@@ -890,12 +910,30 @@ function QuizSection({
       ) : quizPassed ? (
         <div className="quiz-complete-panel" role="status">
           <strong>Quiz passed</strong>
-          <p className="muted">This lesson is complete. The answer form is hidden because your passing result is already saved.</p>
+          <p className="muted">This lesson is complete. Choose the next step below.</p>
           {resultSummary && (
             <p className="muted">
               Latest score: {resultSummary.score} out of {questions.length}
             </p>
           )}
+          <div className="completion-actions">
+            {providesCertificate && issuedCertificate && (
+              <Link className="secondary compact-button" href={`/certificate/${issuedCertificate.verification_code}`}>
+                View certificate
+              </Link>
+            )}
+            {providesCertificate && !issuedCertificate && (
+              <Link className="secondary compact-button" href="/profile">
+                Add certificate name
+              </Link>
+            )}
+            {onNextLesson && nextLessonTitle && (
+              <button className="primary compact-button" type="button" onClick={onNextLesson}>
+                Start next lesson
+              </button>
+            )}
+          </div>
+          {nextLessonTitle && <p className="muted">Next: {nextLessonTitle}</p>}
         </div>
       ) : (
         <form onSubmit={onSubmit} style={{ marginTop: 18 }}>

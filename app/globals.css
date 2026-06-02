@@ -676,6 +676,13 @@ fieldset {
   color: var(--green-text);
 }
 
+.completion-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 14px;
+}
+
 .result {
   padding: 16px;
   border-radius: var(--radius);
@@ -1584,7 +1591,8 @@ fieldset {
     text-align: center;
   }
 
-  .status-card {
+  .status-card,
+  .completion-actions {
     align-items: stretch;
     flex-direction: column;
   }
