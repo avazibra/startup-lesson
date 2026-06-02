@@ -8,6 +8,8 @@ import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 import type { Lesson, LessonBundle, Profile, QuizQuestion } from "@/lib/types";
 import { ThemeToggle } from "../theme-toggle";
 
+type LessonFilter = "active" | "draft" | "archived" | "all";
+
 export default function AdminPage() {
   const [profile, setProfile] = useState<Profile | null>(isSupabaseConfigured ? null : demoProfile);
   const [draft, setDraft] = useState<LessonBundle>(demoLessonBundle);
@@ -15,11 +17,24 @@ export default function AdminPage() {
   const [message, setMessage] = useState("");
   const [validationIssues, setValidationIssues] = useState<string[]>([]);
   const [activeEditorTab, setActiveEditorTab] = useState<"lesson" | "quiz" | "preview">("lesson");
+  const [lessonFilter, setLessonFilter] = useState<LessonFilter>("active");
   const [isArchiveConfirmOpen, setIsArchiveConfirmOpen] = useState(false);
   const isAdmin = profile?.role === "admin";
   const isDemoAdminEnabled = !isSupabaseConfigured && process.env.NEXT_PUBLIC_ENABLE_DEMO_ADMIN === "true";
   const canEditContent = isAdmin || isDemoAdminEnabled;
   const isUnsavedLesson = !lessons.some((lesson) => lesson.id === draft.lesson.id);
+  const visibleLessons = lessons.filter((lesson) => {
+    if (lessonFilter === "all") return true;
+    if (lessonFilter === "archived") return Boolean(lesson.archived_at);
+    if (lessonFilter === "draft") return !lesson.archived_at && !lesson.is_published;
+    return !lesson.archived_at && lesson.is_published;
+  });
+  const lessonFilterCounts: Record<LessonFilter, number> = {
+    active: lessons.filter((lesson) => !lesson.archived_at && lesson.is_published).length,
+    draft: lessons.filter((lesson) => !lesson.archived_at && !lesson.is_published).length,
+    archived: lessons.filter((lesson) => lesson.archived_at).length,
+    all: lessons.length
+  };
 
   useEffect(() => {
     if (!supabase) return;
@@ -429,8 +444,22 @@ export default function AdminPage() {
                 <h3>Course structure</h3>
               </div>
             </div>
+            <div className="lesson-filter" aria-label="Lesson status filter">
+              {(["active", "draft", "archived", "all"] as LessonFilter[]).map((filter) => (
+                <button
+                  aria-pressed={lessonFilter === filter}
+                  className={lessonFilter === filter ? "active" : ""}
+                  key={filter}
+                  type="button"
+                  onClick={() => setLessonFilter(filter)}
+                >
+                  <span>{getLessonFilterLabel(filter)}</span>
+                  <strong>{lessonFilterCounts[filter]}</strong>
+                </button>
+              ))}
+            </div>
             <div className="lesson-list">
-              {isUnsavedLesson && (
+              {isUnsavedLesson && (lessonFilter === "all" || lessonFilter === "draft") && (
                 <div className="lesson-row active unsaved" aria-live="polite">
                   <span>
                     <strong>
@@ -440,7 +469,7 @@ export default function AdminPage() {
                   </span>
                 </div>
               )}
-              {lessons.map((lesson) => (
+              {visibleLessons.map((lesson) => (
                 <button
                   className={`lesson-row ${lesson.id === draft.lesson.id ? "active" : ""}`}
                   key={lesson.id}
@@ -455,6 +484,9 @@ export default function AdminPage() {
                   </span>
                 </button>
               ))}
+              {!visibleLessons.length && !(isUnsavedLesson && (lessonFilter === "all" || lessonFilter === "draft")) && (
+                <div className="empty-list-note">No {getLessonFilterLabel(lessonFilter).toLowerCase()} lessons.</div>
+              )}
             </div>
             <button className="secondary full-width" type="button" onClick={createLessonDraft}>
               New lesson
@@ -806,6 +838,13 @@ export default function AdminPage() {
       </main>
     </div>
   );
+}
+
+function getLessonFilterLabel(filter: LessonFilter) {
+  if (filter === "active") return "Active";
+  if (filter === "draft") return "Draft";
+  if (filter === "archived") return "Archived";
+  return "All";
 }
 
 function formatCorrectAnswerSummary(question: QuizQuestion) {
