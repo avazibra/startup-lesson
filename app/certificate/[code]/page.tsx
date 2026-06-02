@@ -1,6 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 import Link from "next/link";
 import type { Certificate } from "@/lib/types";
+import { PrintButton } from "../print-button";
 
 export const dynamic = "force-dynamic";
 
@@ -30,25 +31,51 @@ export default async function CertificatePage({ params }: CertificatePageProps) 
     month: "long",
     year: "numeric"
   });
+  const verificationUrl = `https://startup.unicorntech.uz/certificate/${issuedCertificate.verification_code}`;
 
   return (
     <main className="certificate-page">
       <section className="certificate-document" aria-label="Verified certificate">
-        <p className="eyebrow">Startup Fundamentals</p>
-        <h1>Certificate of Completion</h1>
-        <p className="certificate-lead">This certifies that</p>
-        <strong className="certificate-name">{issuedCertificate.recipient_name}</strong>
-        <p className="certificate-lead">successfully completed</p>
-        <h2>{issuedCertificate.lesson_title}</h2>
-        <p className="muted">Part of {issuedCertificate.course_title}</p>
-        <div className="certificate-meta">
-          <span>Issued {issuedDate}</span>
-          <span>Verification code: {issuedCertificate.verification_code}</span>
+        <div className="certificate-frame">
+          <div className="certificate-brand-row">
+            <div>
+              <p className="eyebrow">UnicornTech</p>
+              <strong>Startup Fundamentals</strong>
+            </div>
+            <span className="certificate-verified">Verified certificate</span>
+          </div>
+
+          <div className="certificate-main-copy">
+            <p className="certificate-kicker">Certificate of Completion</p>
+            <h1>{issuedCertificate.recipient_name}</h1>
+            <p className="certificate-lead">has successfully completed</p>
+            <h2>{issuedCertificate.lesson_title}</h2>
+            <p className="muted">part of {issuedCertificate.course_title}</p>
+          </div>
+
+          <div className="certificate-signoff">
+            <div>
+              <span>Issued</span>
+              <strong>{issuedDate}</strong>
+            </div>
+            <div>
+              <span>Verification code</span>
+              <strong>{issuedCertificate.verification_code}</strong>
+            </div>
+          </div>
+
+          <div className="certificate-verification-box">
+            <span>Verify this certificate at</span>
+            <strong>{verificationUrl}</strong>
+          </div>
         </div>
       </section>
-      <Link className="tab active" href="/">
-        Back to course
-      </Link>
+      <div className="certificate-actions">
+        <PrintButton />
+        <Link className="tab active" href="/">
+          Back to course
+        </Link>
+      </div>
     </main>
   );
 }

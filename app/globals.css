@@ -986,26 +986,91 @@ fieldset {
 }
 
 .certificate-document {
-  width: min(920px, 100%);
-  padding: clamp(32px, 7vw, 72px);
-  border: 1px solid color-mix(in srgb, var(--blue) 24%, var(--line));
+  width: min(1040px, 100%);
+  padding: clamp(14px, 2vw, 22px);
+  border: 1px solid color-mix(in srgb, var(--blue) 26%, var(--line));
   border-radius: var(--radius);
   background: var(--surface);
   box-shadow: var(--shadow);
+}
+
+.certificate-frame {
+  display: grid;
+  gap: clamp(28px, 5vw, 52px);
+  min-height: min(720px, calc(100vh - 120px));
+  padding: clamp(28px, 6vw, 68px);
+  border: 2px solid color-mix(in srgb, var(--blue) 24%, var(--line));
+  border-radius: calc(var(--radius) - 2px);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--surface) 96%, var(--blue)), var(--surface));
   text-align: center;
 }
 
+.certificate-brand-row,
+.certificate-signoff,
+.certificate-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.certificate-brand-row {
+  text-align: left;
+}
+
+.certificate-brand-row .eyebrow {
+  margin-bottom: 4px;
+}
+
+.certificate-verified {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 34px;
+  padding: 6px 12px;
+  border: 1px solid color-mix(in srgb, var(--green) 30%, transparent);
+  border-radius: 999px;
+  background: var(--green-soft);
+  color: var(--green-text);
+  font-size: 0.84rem;
+  font-weight: 850;
+}
+
+.certificate-verified::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--green);
+}
+
+.certificate-main-copy {
+  align-self: center;
+}
+
+.certificate-kicker {
+  margin: 0 0 18px;
+  color: var(--blue);
+  font-size: 0.88rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
 .certificate-document h1 {
-  margin: 8px 0 26px;
-  font-size: clamp(2.1rem, 6vw, 4.5rem);
+  margin: 0 auto 18px;
+  max-width: 780px;
+  color: var(--text);
+  font-size: clamp(2.3rem, 7vw, 5.3rem);
   line-height: 1.02;
 }
 
 .certificate-document h2 {
-  margin: 10px auto;
-  max-width: 720px;
-  font-size: clamp(1.5rem, 4vw, 2.5rem);
-  line-height: 1.12;
+  margin: 12px auto 8px;
+  max-width: 760px;
+  color: var(--blue);
+  font-size: clamp(1.45rem, 3.5vw, 2.55rem);
+  line-height: 1.14;
 }
 
 .certificate-lead {
@@ -1015,22 +1080,43 @@ fieldset {
   font-weight: 760;
 }
 
-.certificate-name {
-  display: block;
-  margin: 8px 0 18px;
-  color: var(--blue);
-  font-size: clamp(1.8rem, 5vw, 3.5rem);
-  line-height: 1.08;
+.certificate-signoff {
+  align-items: flex-end;
+  text-align: left;
 }
 
-.certificate-meta {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 10px 18px;
-  margin-top: 32px;
+.certificate-signoff div {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+}
+
+.certificate-signoff span,
+.certificate-verification-box span {
   color: var(--muted);
-  font-size: 0.9rem;
+  font-size: 0.78rem;
+  font-weight: 850;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.certificate-signoff strong,
+.certificate-verification-box strong {
+  overflow-wrap: anywhere;
+}
+
+.certificate-verification-box {
+  display: grid;
+  gap: 6px;
+  padding: 14px 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface-muted);
+  text-align: left;
+}
+
+.certificate-actions {
+  width: min(1040px, 100%);
 }
 
 @media print {
@@ -1040,12 +1126,18 @@ fieldset {
     background: white;
   }
 
-  .certificate-page > .tab {
+  .certificate-actions {
     display: none;
   }
 
   .certificate-document {
+    width: 100%;
+    border: 0;
     box-shadow: none;
+  }
+
+  .certificate-frame {
+    min-height: 92vh;
   }
 }
 
@@ -1311,6 +1403,19 @@ fieldset {
 
   .preview-quiz .row {
     gap: 8px;
+  }
+
+  .certificate-brand-row,
+  .certificate-signoff,
+  .certificate-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .certificate-brand-row,
+  .certificate-signoff,
+  .certificate-verification-box {
+    text-align: center;
   }
 
   .archive-confirm {
