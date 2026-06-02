@@ -323,6 +323,18 @@ export default function AdminPage() {
       }
     }
 
+    const currentQuestionIds = draft.questions.map((question) => question.id);
+    const { error: deleteError } = await supabase
+      .from("quiz_questions")
+      .delete()
+      .eq("lesson_id", draft.lesson.id)
+      .not("id", "in", `(${currentQuestionIds.join(",")})`);
+
+    if (deleteError) {
+      setMessage(deleteError.message);
+      return;
+    }
+
     const { data: refreshedLessons } = await supabase.from("lessons").select("*").eq("course_id", COURSE_ID).order("lesson_order");
     if (refreshedLessons) {
       setLessons(refreshedLessons as Lesson[]);
