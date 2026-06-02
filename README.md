@@ -39,6 +39,7 @@ Open `http://localhost:3000`.
 ```bash
 NEXT_PUBLIC_SUPABASE_URL=your_project_url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_anon_key
+NEXT_PUBLIC_YANDEX_METRIKA_ID=your_counter_id
 ```
 
 For simpler MVP testing, use email/password auth:
@@ -62,6 +63,7 @@ Add these environment variables to the Vercel project:
 
 - `NEXT_PUBLIC_SUPABASE_URL`
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+- `NEXT_PUBLIC_YANDEX_METRIKA_ID`
 
 Then redeploy the project.
 
