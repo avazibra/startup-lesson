@@ -15,7 +15,8 @@ export const demoLessonBundle: LessonBundle = {
     youtube_video_id: "jnqSezTbEb8",
     lesson_order: 1,
     passing_score: 4,
-    is_published: true
+    is_published: true,
+    provides_certificate: true
   },
   questions: [
     {
@@ -130,6 +131,7 @@ export const demoLessons: LessonWithProgress[] = [
     lesson_order: 2,
     passing_score: 4,
     is_published: true,
+    provides_certificate: false,
     progress: null,
     is_locked: true
   }

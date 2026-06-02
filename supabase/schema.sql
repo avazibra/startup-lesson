@@ -24,11 +24,13 @@ create table if not exists public.lessons (
   lesson_order integer not null default 1,
   passing_score integer not null default 4,
   is_published boolean not null default false,
+  provides_certificate boolean not null default false,
   created_at timestamptz not null default now()
 );
 
 alter table public.lessons
-  add column if not exists archived_at timestamptz;
+  add column if not exists archived_at timestamptz,
+  add column if not exists provides_certificate boolean not null default false;
 
 create table if not exists public.quiz_questions (
   id uuid primary key default gen_random_uuid(),
@@ -243,7 +245,8 @@ insert into public.lessons (
   youtube_video_id,
   lesson_order,
   passing_score,
-  is_published
+  is_published,
+  provides_certificate
 )
 values (
   '22222222-2222-2222-2222-222222222222',
@@ -253,6 +256,7 @@ values (
   'jnqSezTbEb8',
   1,
   4,
+  true,
   true
 )
 on conflict (id) do update
@@ -261,7 +265,8 @@ set title = excluded.title,
     youtube_video_id = excluded.youtube_video_id,
     lesson_order = excluded.lesson_order,
     passing_score = excluded.passing_score,
-    is_published = excluded.is_published;
+    is_published = excluded.is_published,
+    provides_certificate = excluded.provides_certificate;
 
 insert into public.lessons (
   id,
@@ -271,7 +276,8 @@ insert into public.lessons (
   youtube_video_id,
   lesson_order,
   passing_score,
-  is_published
+  is_published,
+  provides_certificate
 )
 values (
   '22222222-2222-2222-2222-222222222223',
@@ -281,7 +287,8 @@ values (
   'jnqSezTbEb8',
   2,
   4,
-  true
+  true,
+  false
 )
 on conflict (id) do update
 set title = excluded.title,
@@ -289,7 +296,8 @@ set title = excluded.title,
     youtube_video_id = excluded.youtube_video_id,
     lesson_order = excluded.lesson_order,
     passing_score = excluded.passing_score,
-    is_published = excluded.is_published;
+    is_published = excluded.is_published,
+    provides_certificate = excluded.provides_certificate;
 
 insert into public.quiz_questions (
   id,

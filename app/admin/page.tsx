@@ -123,7 +123,8 @@ export default function AdminPage() {
         youtube_video_id: "jnqSezTbEb8",
         lesson_order: nextOrder,
         passing_score: 4,
-        is_published: false
+        is_published: false,
+        provides_certificate: false
       },
       questions: [
         {
@@ -310,7 +311,8 @@ export default function AdminPage() {
       youtube_video_id: draft.lesson.youtube_video_id,
       lesson_order: draft.lesson.lesson_order,
       passing_score: draft.lesson.passing_score,
-      is_published: draft.lesson.is_published
+      is_published: draft.lesson.is_published,
+      provides_certificate: Boolean(draft.lesson.provides_certificate)
     } as Partial<Lesson>;
 
     if (draft.lesson.archived_at !== undefined) {
@@ -609,6 +611,19 @@ export default function AdminPage() {
                   </div>
                 </div>
 
+                <label className="toggle-field" htmlFor="provides-certificate">
+                  <input
+                    checked={Boolean(draft.lesson.provides_certificate)}
+                    id="provides-certificate"
+                    type="checkbox"
+                    onChange={(event) => updateLesson({ provides_certificate: event.target.checked })}
+                  />
+                  <span>
+                    <strong>Issue a certificate for this lesson</strong>
+                    <span>Learners who pass this lesson can receive a certificate when certificate issuing is enabled.</span>
+                  </span>
+                </label>
+
                 <div className="field">
                   <label htmlFor="lesson-description">Lesson description</label>
                   <textarea
@@ -729,9 +744,12 @@ export default function AdminPage() {
                       <h3>Learner preview</h3>
                       <p className="muted">A quick check of what this lesson will feel like before publishing.</p>
                     </div>
-                    <span className={`pill ${draft.lesson.archived_at ? "warning" : draft.lesson.is_published ? "success" : ""}`}>
-                      {getLessonStatus(draft.lesson)}
-                    </span>
+                    <div className="preview-status-pills">
+                      <span className={`pill ${draft.lesson.archived_at ? "warning" : draft.lesson.is_published ? "success" : ""}`}>
+                        {getLessonStatus(draft.lesson)}
+                      </span>
+                      {draft.lesson.provides_certificate && <span className="pill success">Certificate</span>}
+                    </div>
                   </div>
 
                   <div className="preview-panel">

@@ -17,6 +17,7 @@ export type Lesson = {
   lesson_order: number;
   passing_score: number;
   is_published: boolean;
+  provides_certificate: boolean;
   archived_at?: string | null;
   created_at?: string;
 };
