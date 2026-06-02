@@ -150,7 +150,11 @@ export default function Home() {
     const [{ data: course }, { data: lesson }, { data: questions }, { data: courseLessons }] = await Promise.all([
       supabase.from("courses").select("*").eq("id", COURSE_ID).single(),
       supabase.from("lessons").select("*").eq("id", targetLessonId).eq("is_published", true).single(),
-      supabase.from("quiz_questions").select("*").eq("lesson_id", targetLessonId).order("question_order"),
+      supabase
+        .from("lesson_quiz_questions")
+        .select("id, lesson_id, prompt, choice_type, options, explanation, question_order")
+        .eq("lesson_id", targetLessonId)
+        .order("question_order"),
       supabase.from("lessons").select("*").eq("course_id", COURSE_ID).eq("is_published", true).order("lesson_order")
     ]);
 
@@ -158,7 +162,10 @@ export default function Home() {
       setBundle({
         course,
         lesson,
-        questions: questions as QuizQuestion[]
+        questions: (questions as Omit<QuizQuestion, "correct_answers">[]).map((question) => ({
+          ...question,
+          correct_answers: []
+        }))
       });
     }
 
@@ -307,18 +314,11 @@ export default function Home() {
 
     if (!supabase || !profile) return;
 
-    await supabase.from("lesson_progress").upsert(
-      {
-        user_id: profile.id,
-        lesson_id: bundle.lesson.id,
-        video_progress_percent: normalized.video_progress_percent,
-        video_completed: normalized.video_completed,
-        quiz_passed: normalized.quiz_passed,
-        completed_at: normalized.completed_at,
-        updated_at: new Date().toISOString()
-      },
-      { onConflict: "user_id,lesson_id" }
-    );
+    await supabase.rpc("update_video_progress", {
+      p_lesson_id: bundle.lesson.id,
+      p_video_completed: normalized.video_completed,
+      p_video_progress_percent: normalized.video_progress_percent
+    });
   }
 
   async function signInWithPassword(event: FormEvent<HTMLFormElement>) {
@@ -378,6 +378,53 @@ export default function Home() {
       return;
     }
 
+    if (supabase) {
+      if (!profile) {
+        setStatusMessage("Sign in before submitting the quiz.");
+        return;
+      }
+
+      const {
+        data: { session }
+      } = await supabase.auth.getSession();
+
+      if (!session?.access_token) {
+        setStatusMessage("Your session expired. Sign in again before submitting the quiz.");
+        return;
+      }
+
+      const response = await fetch("/api/quiz/submit", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          lessonId: bundle.lesson.id,
+          answers: selectedAnswers
+        })
+      });
+
+      const payload = (await response.json()) as {
+        error?: string;
+        attempt?: QuizAttempt;
+        progress?: LessonProgress;
+        results?: QuizResult[];
+      };
+
+      if (!response.ok || !payload.attempt || !payload.progress || !payload.results) {
+        setStatusMessage(payload.error ?? "Could not submit quiz.");
+        return;
+      }
+
+      setQuizResult(payload.results);
+      setProgress(payload.progress);
+      setAttempts((current) => [payload.attempt as QuizAttempt, ...current]);
+      void loadUserData(profile.id, profile.email);
+      setStatusMessage(payload.attempt.passed ? "Lesson completed. Next lesson unlocked." : "Quiz failed. Review explanations and retake.");
+      return;
+    }
+
     const results = bundle.questions.map((question) => {
       const selected = [...(selectedAnswers[question.id] ?? [])].sort((a, b) => a - b);
       const expected = [...question.correct_answers].sort((a, b) => a - b);
@@ -406,10 +453,6 @@ export default function Home() {
       quiz_passed: passed,
       completed_at: passed ? new Date().toISOString() : progress.completed_at
     });
-
-    if (supabase && profile) {
-      await supabase.from("quiz_attempts").insert(attempt);
-    }
 
     setStatusMessage(passed ? "Lesson completed. Next lesson unlocked." : "Quiz failed. Review explanations and retake.");
   }

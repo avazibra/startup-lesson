@@ -42,6 +42,23 @@ create table if not exists public.quiz_questions (
   created_at timestamptz not null default now()
 );
 
+create or replace view public.lesson_quiz_questions as
+select
+  quiz_questions.id,
+  quiz_questions.lesson_id,
+  quiz_questions.prompt,
+  quiz_questions.choice_type,
+  quiz_questions.options,
+  quiz_questions.explanation,
+  quiz_questions.question_order,
+  quiz_questions.created_at
+from public.quiz_questions
+join public.lessons on lessons.id = quiz_questions.lesson_id
+where lessons.is_published
+  and lessons.archived_at is null;
+
+grant select on public.lesson_quiz_questions to anon, authenticated;
+
 create table if not exists public.lesson_progress (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references auth.users(id) on delete cascade,
@@ -101,6 +118,46 @@ as $$
   );
 $$;
 
+create or replace function public.update_video_progress(
+  p_lesson_id uuid,
+  p_video_progress_percent integer,
+  p_video_completed boolean
+)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  safe_percent integer := greatest(0, least(100, p_video_progress_percent));
+begin
+  if auth.uid() is null then
+    raise exception 'Authentication required';
+  end if;
+
+  insert into public.lesson_progress (
+    user_id,
+    lesson_id,
+    video_progress_percent,
+    video_completed,
+    updated_at
+  )
+  values (
+    auth.uid(),
+    p_lesson_id,
+    safe_percent,
+    p_video_completed,
+    now()
+  )
+  on conflict (user_id, lesson_id) do update
+  set video_progress_percent = greatest(public.lesson_progress.video_progress_percent, excluded.video_progress_percent),
+      video_completed = public.lesson_progress.video_completed or excluded.video_completed,
+      updated_at = now();
+end;
+$$;
+
+grant execute on function public.update_video_progress(uuid, integer, boolean) to authenticated;
+
 alter table public.profiles enable row level security;
 alter table public.courses enable row level security;
 alter table public.lessons enable row level security;
@@ -142,15 +199,10 @@ create policy "lessons_admin_write"
   with check (public.is_admin());
 
 drop policy if exists "questions_public_read_published_lesson" on public.quiz_questions;
-create policy "questions_public_read_published_lesson"
+drop policy if exists "questions_admin_read" on public.quiz_questions;
+create policy "questions_admin_read"
   on public.quiz_questions for select
-  using (
-    exists (
-      select 1 from public.lessons
-      where lessons.id = quiz_questions.lesson_id
-      and ((lessons.is_published and lessons.archived_at is null) or public.is_admin())
-    )
-  );
+  using (public.is_admin());
 
 drop policy if exists "questions_admin_write" on public.quiz_questions;
 create policy "questions_admin_write"
@@ -163,16 +215,8 @@ create policy "progress_read_own_or_admin"
   on public.lesson_progress for select
   using (user_id = auth.uid() or public.is_admin());
 
-drop policy if exists "progress_write_own" on public.lesson_progress;
-create policy "progress_write_own"
-  on public.lesson_progress for insert
-  with check (user_id = auth.uid());
-
 drop policy if exists "progress_update_own" on public.lesson_progress;
-create policy "progress_update_own"
-  on public.lesson_progress for update
-  using (user_id = auth.uid())
-  with check (user_id = auth.uid());
+drop policy if exists "progress_write_own" on public.lesson_progress;
 
 drop policy if exists "attempts_read_own_or_admin" on public.quiz_attempts;
 create policy "attempts_read_own_or_admin"
@@ -180,9 +224,6 @@ create policy "attempts_read_own_or_admin"
   using (user_id = auth.uid() or public.is_admin());
 
 drop policy if exists "attempts_insert_own" on public.quiz_attempts;
-create policy "attempts_insert_own"
-  on public.quiz_attempts for insert
-  with check (user_id = auth.uid());
 
 insert into public.courses (id, title, description)
 values (

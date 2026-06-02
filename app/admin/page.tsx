@@ -16,6 +16,8 @@ export default function AdminPage() {
   const [validationIssues, setValidationIssues] = useState<string[]>([]);
   const [activeEditorTab, setActiveEditorTab] = useState<"lesson" | "quiz" | "preview">("lesson");
   const isAdmin = profile?.role === "admin";
+  const isDemoAdminEnabled = !isSupabaseConfigured && process.env.NEXT_PUBLIC_ENABLE_DEMO_ADMIN === "true";
+  const canEditContent = isAdmin || isDemoAdminEnabled;
   const isUnsavedLesson = !lessons.some((lesson) => lesson.id === draft.lesson.id);
 
   useEffect(() => {
@@ -448,7 +450,7 @@ export default function AdminPage() {
             </section>
           )}
 
-          {(!isSupabaseConfigured || isAdmin) && (
+          {canEditContent && (
             <form className="card card-pad form-grid admin-form" onSubmit={saveContent}>
               <div className="editor-hero">
                 <div>
@@ -456,7 +458,7 @@ export default function AdminPage() {
                   <h2>Maintain lesson content</h2>
                   <p className="muted">Choose a lesson, edit its video and quiz, then save the changes.</p>
                 </div>
-                <span className={`pill ${isAdmin ? "success" : "warning"}`}>{isAdmin ? "Admin access" : "Admin required"}</span>
+                <span className={`pill ${canEditContent ? "success" : "warning"}`}>{canEditContent ? "Admin access" : "Admin required"}</span>
               </div>
 
               <div className="admin-subtabs" aria-label="Content editor sections">
@@ -739,6 +741,13 @@ export default function AdminPage() {
                 </div>
               )}
             </form>
+          )}
+
+          {!canEditContent && !isSupabaseConfigured && (
+            <section className="card card-pad">
+              <h3>Demo admin disabled</h3>
+              <p className="muted">Connect Supabase and sign in as an admin to edit content.</p>
+            </section>
           )}
 
           {message && (

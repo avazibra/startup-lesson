@@ -101,7 +101,7 @@ export const demoProfile: Profile = {
   id: "demo-user",
   full_name: "Demo learner",
   email: "demo@startup.lesson",
-  role: "admin"
+  role: "student"
 };
 
 export const emptyDemoProgress: LessonProgress = {
