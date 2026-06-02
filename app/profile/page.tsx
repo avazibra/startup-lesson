@@ -181,8 +181,12 @@ export default function ProfilePage() {
                     {lesson.provides_certificate && <p className="certificate-line">Certificate available</p>}
                   </div>
                   <div className="lesson-history-actions">
-                    <span className={`pill ${lesson.progress?.quiz_passed ? "success" : ""}`}>
-                      {lesson.progress?.quiz_passed ? "Completed" : index === 0 || lessons[index - 1]?.progress?.quiz_passed ? "In progress" : "Locked"}
+                    <span
+                      className={`lesson-status-chip ${
+                        lesson.progress?.quiz_passed ? "complete" : index === 0 || lessons[index - 1]?.progress?.quiz_passed ? "active" : "locked"
+                      }`}
+                    >
+                      {lesson.progress?.quiz_passed ? "Done" : index === 0 || lessons[index - 1]?.progress?.quiz_passed ? "Active" : "Locked"}
                     </span>
                     {lesson.provides_certificate && lesson.progress?.quiz_passed && certificateByLessonId.get(lesson.id) && (
                       <Link className="secondary compact-button" href={`/certificate/${certificateByLessonId.get(lesson.id)?.verification_code}`}>
