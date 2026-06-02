@@ -748,29 +748,31 @@ function StatusCard({
         </div>
       </div>
       <ul className="checklist">
-        <ChecklistItem done={videoCompleted} number="1" title="Watch video" text={videoCompleted ? "Completed" : "Required before quiz"} />
+        <ChecklistItem done={videoCompleted} number="1" title="Watch video" text={videoCompleted ? "Completed" : "Required before quiz"} status={videoCompleted ? "Done" : "Open"} />
         <ChecklistItem
           done={quizPassed}
           number="2"
           title="Pass quiz"
           text={quizPassed ? "Passed" : quizUnlocked ? "Ready to take" : "Locked until video completion"}
+          status={quizPassed ? "Done" : quizUnlocked ? "Ready" : "Locked"}
         />
-        <ChecklistItem done={nextLessonUnlocked} number="3" title="Continue" text={nextLessonUnlocked ? "Unlocked" : "Next lesson locked"} />
+        <ChecklistItem done={nextLessonUnlocked} number="3" title="Continue" text={nextLessonUnlocked ? "Unlocked" : "Next lesson locked"} status={nextLessonUnlocked ? "Open" : "Locked"} />
       </ul>
     </section>
   );
 }
 
-function ChecklistItem({ done, number, title, text }: { done: boolean; number: string; title: string; text: string }) {
+function ChecklistItem({ done, number, title, text, status }: { done: boolean; number: string; title: string; text: string; status?: string }) {
   return (
     <li className={`check-item ${done ? "complete" : ""}`}>
       <span className="check-icon" aria-hidden="true">
-        {done ? "OK" : number}
+        {done ? "" : number}
       </span>
-      <span>
+      <span className="check-copy">
         <strong>{title}</strong>
         <span>{text}</span>
       </span>
+      <span className={`check-status ${done ? "complete" : ""}`}>{status ?? (done ? "Done" : "Pending")}</span>
     </li>
   );
 }
@@ -1144,9 +1146,9 @@ function ProfilePanel({
         <h2>{profile?.full_name ?? "Not signed in"}</h2>
         <p className="muted">{profile?.email ?? "Sign in to save progress across devices."}</p>
         <div className="checklist">
-          <ChecklistItem done={progress.video_completed} number="1" title="Video" text={`${progress.video_progress_percent}% watched`} />
-          <ChecklistItem done={progress.quiz_passed} number="2" title="Quiz" text={progress.quiz_passed ? "Passed" : "Not passed yet"} />
-          <ChecklistItem done={Boolean(progress.completed_at)} number="3" title="Completion" text={progress.completed_at ?? "Incomplete"} />
+          <ChecklistItem done={progress.video_completed} number="1" title="Video" text={`${progress.video_progress_percent}% watched`} status={progress.video_completed ? "Done" : "Watching"} />
+          <ChecklistItem done={progress.quiz_passed} number="2" title="Quiz" text={progress.quiz_passed ? "Passed" : "Not passed yet"} status={progress.quiz_passed ? "Done" : "Pending"} />
+          <ChecklistItem done={Boolean(progress.completed_at)} number="3" title="Completion" text={progress.completed_at ?? "Incomplete"} status={progress.completed_at ? "Done" : "Pending"} />
         </div>
       </section>
 

@@ -531,9 +531,9 @@ h3 {
 
 .check-item {
   display: grid;
-  grid-template-columns: 30px minmax(0, 1fr);
+  grid-template-columns: 28px minmax(0, 1fr) auto;
   gap: 10px;
-  align-items: start;
+  align-items: center;
   padding: 12px;
   border: 1px solid var(--line);
   border-radius: var(--radius);
@@ -543,8 +543,8 @@ h3 {
 .check-icon {
   display: grid;
   place-items: center;
-  width: 30px;
-  height: 30px;
+  width: 28px;
+  height: 28px;
   border-radius: 50%;
   background: var(--surface-elevated);
   color: var(--muted);
@@ -562,7 +562,41 @@ h3 {
   color: white;
 }
 
-.check-item strong,
+.check-item.complete .check-icon::before {
+  content: "";
+  width: 10px;
+  height: 6px;
+  border-bottom: 2px solid white;
+  border-left: 2px solid white;
+  transform: rotate(-45deg);
+}
+
+.check-copy {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.check-status {
+  justify-self: end;
+  padding: 6px 10px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface-elevated);
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 820;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.check-status.complete {
+  border-color: color-mix(in srgb, var(--green) 34%, transparent);
+  background: var(--green-soft);
+  color: var(--green-text);
+}
+
+.check-copy strong,
 .field label,
 legend {
   display: block;
@@ -570,9 +604,9 @@ legend {
   font-weight: 820;
 }
 
-.check-item span:last-child {
+.check-copy span {
   color: var(--muted);
-  font-size: 0.84rem;
+  font-size: 0.86rem;
 }
 
 fieldset {
