@@ -43,6 +43,7 @@ type QuizResult = {
 };
 
 const initialLessonId = isSupabaseConfigured ? DEFAULT_LESSON_ID : demoLessonBundle.lesson.id;
+const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export default function Home() {
   const [bundle, setBundle] = useState<LessonBundle>(demoLessonBundle);
@@ -100,6 +101,9 @@ export default function Home() {
   useEffect(() => {
     if (selectedLessonId === bundle.lesson.id) return;
     void loadContent(selectedLessonId);
+    if (profile) {
+      void loadUserData(profile.id, profile.email);
+    }
     setSelectedAnswers({});
     setQuizResult(null);
   }, [selectedLessonId]);
@@ -149,31 +153,52 @@ export default function Home() {
       return;
     }
 
-    const [{ data: course }, { data: lesson }, { data: questions }, { data: courseLessons }] = await Promise.all([
+    const requestedLessonId = uuidPattern.test(targetLessonId) ? targetLessonId : DEFAULT_LESSON_ID;
+    const [{ data: course, error: courseError }, { data: courseLessons, error: lessonsError }] = await Promise.all([
       supabase.from("courses").select("*").eq("id", COURSE_ID).single(),
-      supabase.from("lessons").select("*").eq("id", targetLessonId).eq("is_published", true).single(),
-      supabase
-        .from("lesson_quiz_questions")
-        .select("id, lesson_id, prompt, choice_type, options, explanation, question_order")
-        .eq("lesson_id", targetLessonId)
-        .order("question_order"),
       supabase.from("lessons").select("*").eq("course_id", COURSE_ID).eq("is_published", true).order("lesson_order")
     ]);
 
-    if (course && lesson && questions) {
-      setBundle({
-        course,
-        lesson,
-        questions: (questions as Omit<QuizQuestion, "correct_answers">[]).map((question) => ({
-          ...question,
-          correct_answers: []
-        }))
-      });
+    if (courseError || lessonsError) {
+      setStatusMessage(courseError?.message ?? lessonsError?.message ?? "Could not load course lessons.");
+      return;
     }
 
-    if (courseLessons) {
-      await loadLessonList((courseLessons as LessonWithProgress[]).filter((courseLesson) => !courseLesson.archived_at));
+    const publishedLessons = ((courseLessons as LessonWithProgress[] | null) ?? []).filter((courseLesson) => !courseLesson.archived_at);
+    if (!course || !publishedLessons.length) {
+      setStatusMessage("No published lessons are available yet.");
+      return;
     }
+
+    const lessonIdToLoad = publishedLessons.some((lesson) => lesson.id === requestedLessonId) ? requestedLessonId : publishedLessons[0].id;
+    if (selectedLessonId !== lessonIdToLoad) {
+      setSelectedLessonId(lessonIdToLoad);
+    }
+
+    const [{ data: lesson, error: lessonError }, { data: questions, error: questionsError }] = await Promise.all([
+      supabase.from("lessons").select("*").eq("id", lessonIdToLoad).eq("is_published", true).single(),
+      supabase
+        .from("lesson_quiz_questions")
+        .select("id, lesson_id, prompt, choice_type, options, explanation, question_order")
+        .eq("lesson_id", lessonIdToLoad)
+        .order("question_order")
+    ]);
+
+    if (lessonError || questionsError || !lesson || !questions) {
+      setStatusMessage(lessonError?.message ?? questionsError?.message ?? "Could not load lesson content.");
+      return;
+    }
+
+    setBundle({
+      course,
+      lesson,
+      questions: (questions as Omit<QuizQuestion, "correct_answers">[]).map((question) => ({
+        ...question,
+        correct_answers: []
+      }))
+    });
+
+    await loadLessonList(publishedLessons);
   }
 
   async function loadUserData(userId: string, fallbackEmail: string | null) {
