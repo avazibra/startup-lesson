@@ -42,10 +42,12 @@ type QuizResult = {
   correct: boolean;
 };
 
+const initialLessonId = isSupabaseConfigured ? DEFAULT_LESSON_ID : demoLessonBundle.lesson.id;
+
 export default function Home() {
   const [bundle, setBundle] = useState<LessonBundle>(demoLessonBundle);
   const [lessons, setLessons] = useState<LessonWithProgress[]>(demoLessons);
-  const [selectedLessonId, setSelectedLessonId] = useState(demoLessonBundle.lesson.id);
+  const [selectedLessonId, setSelectedLessonId] = useState(initialLessonId);
   const [profile, setProfile] = useState<Profile | null>(isSupabaseConfigured ? null : demoProfile);
   const [progress, setProgress] = useState<LessonProgress>(emptyDemoProgress);
   const [attempts, setAttempts] = useState<QuizAttempt[]>(demoAttempts);
@@ -379,6 +381,12 @@ export default function Home() {
     }
 
     if (supabase) {
+      if (bundle.lesson.id.startsWith("demo-")) {
+        setStatusMessage("Live lesson content is still loading. Refresh the page and try again.");
+        void loadContent(DEFAULT_LESSON_ID);
+        return;
+      }
+
       if (!profile) {
         setStatusMessage("Sign in before submitting the quiz.");
         return;
