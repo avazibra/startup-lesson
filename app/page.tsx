@@ -234,7 +234,7 @@ export default function Home() {
     setProfile(
       userProfile ?? {
         id: userId,
-        full_name: fallbackEmail?.split("@")[0] ?? "Learner",
+        full_name: null,
         email: fallbackEmail,
         role: "student"
       }

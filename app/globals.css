@@ -1295,6 +1295,18 @@ fieldset {
   }
 }
 
+.profile-name-form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: end;
+  margin-top: 20px;
+}
+
+.profile-message {
+  margin-top: 10px;
+}
+
 .profile-meter {
   display: grid;
   gap: 10px;
@@ -1575,6 +1587,10 @@ fieldset {
   .status-card {
     align-items: stretch;
     flex-direction: column;
+  }
+
+  .profile-name-form {
+    grid-template-columns: 1fr;
   }
 
   .archive-confirm {

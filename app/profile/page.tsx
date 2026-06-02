@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import Link from "next/link";
 import { COURSE_ID } from "@/lib/constants";
 import { demoAttempts, demoLessons, demoProfile } from "@/lib/demo-data";
@@ -15,6 +15,9 @@ export default function ProfilePage() {
   const [certificates, setCertificates] = useState<Certificate[]>([]);
   const [certificateMessage, setCertificateMessage] = useState("");
   const [issuingLessonId, setIssuingLessonId] = useState<string | null>(null);
+  const [displayName, setDisplayName] = useState(isSupabaseConfigured ? "" : demoProfile.full_name ?? "");
+  const [profileMessage, setProfileMessage] = useState("");
+  const [profileSaving, setProfileSaving] = useState(false);
   const completedLessons = lessons.filter((lesson) => lesson.progress?.quiz_passed).length;
   const progressPercent = lessons.length ? Math.round((completedLessons / lessons.length) * 100) : 0;
   const lessonTitleById = new Map(lessons.map((lesson) => [lesson.id, lesson.title]));
@@ -37,6 +40,8 @@ export default function ProfilePage() {
         setLessons([]);
         setAttempts([]);
         setCertificates([]);
+        setDisplayName("");
+        setProfileMessage("");
       }
     });
 
@@ -59,14 +64,16 @@ export default function ProfilePage() {
         supabase.from("certificates").select("*").eq("user_id", userId).order("issued_at", { ascending: false })
       ]);
 
-    setProfile(
+    const loadedProfile =
       userProfile ?? {
         id: userId,
-        full_name: fallbackEmail?.split("@")[0] ?? "Learner",
+        full_name: null,
         email: fallbackEmail,
-        role: "student"
-      }
-    );
+        role: "student" as const
+      };
+
+    setProfile(loadedProfile);
+    setDisplayName(loadedProfile.full_name ?? "");
 
     const progressByLesson = new Map((userProgress as LessonProgress[] | null)?.map((item) => [item.lesson_id, item]) ?? []);
     setLessons(
@@ -79,6 +86,52 @@ export default function ProfilePage() {
     );
     setAttempts((userAttempts as QuizAttempt[]) ?? []);
     setCertificates((userCertificates as Certificate[]) ?? []);
+  }
+
+  async function saveProfileName(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!supabase || !profile) return;
+
+    const fullName = displayName.replace(/\s+/g, " ").trim();
+    setProfileSaving(true);
+    setProfileMessage("");
+
+    const {
+      data: { session }
+    } = await supabase.auth.getSession();
+
+    if (!session?.access_token) {
+      setProfileSaving(false);
+      setProfileMessage("Your session expired. Sign in again before updating your profile.");
+      return;
+    }
+
+    const response = await fetch("/api/profile", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${session.access_token}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ fullName })
+    });
+
+    const payload = (await response.json()) as { profile?: Profile; certificates?: Certificate[]; error?: string };
+    setProfileSaving(false);
+
+    if (!response.ok || !payload.profile) {
+      setProfileMessage(payload.error ?? "Could not update profile.");
+      return;
+    }
+
+    setProfile(payload.profile);
+    setDisplayName(payload.profile.full_name ?? "");
+    if (payload.certificates) {
+      setCertificates((current) => {
+        const updatedById = new Map(payload.certificates?.map((certificate) => [certificate.id, certificate]) ?? []);
+        return current.map((certificate) => updatedById.get(certificate.id) ?? certificate);
+      });
+    }
+    setProfileMessage("Profile name saved. Certificates now use this name.");
   }
 
   async function issueCertificate(lessonId: string) {
@@ -151,8 +204,27 @@ export default function ProfilePage() {
       <main className="grid">
         <section className="card card-pad">
           <p className="eyebrow">Learner profile</p>
-          <h2>{profile?.full_name ?? "Not signed in"}</h2>
+          <h2>{profile ? profile.full_name?.trim() || "Add your name" : "Not signed in"}</h2>
           <p className="muted">{profile?.email ?? "Sign in to save progress across devices."}</p>
+          <form className="profile-name-form" onSubmit={saveProfileName}>
+            <div className="field">
+              <label htmlFor="profile-full-name">Certificate name</label>
+              <input
+                disabled={!profile || profileSaving}
+                id="profile-full-name"
+                maxLength={120}
+                placeholder="First name Last name"
+                type="text"
+                value={displayName}
+                onChange={(event) => setDisplayName(event.target.value)}
+              />
+              <p className="muted">This name appears on issued certificates.</p>
+            </div>
+            <button className="primary compact-button" disabled={!profile || profileSaving} type="submit">
+              {profileSaving ? "Saving..." : "Save name"}
+            </button>
+          </form>
+          {profileMessage && <p className="muted profile-message">{profileMessage}</p>}
           <div className="profile-meter">
             <div className="progress-label">
               <span>Course progress</span>

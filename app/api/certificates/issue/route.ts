@@ -78,12 +78,27 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Pass the lesson quiz before issuing a certificate." }, { status: 403 });
   }
 
-  if (existingCertificate) {
-    return NextResponse.json({ certificate: existingCertificate as Certificate });
+  const learnerProfile = profile as Pick<Profile, "full_name" | "email">;
+  const recipientName = learnerProfile.full_name?.trim();
+
+  if (!recipientName) {
+    return NextResponse.json({ error: "Add your certificate name in your profile before issuing a certificate." }, { status: 400 });
   }
 
-  const learnerProfile = profile as Pick<Profile, "full_name" | "email">;
-  const recipientName = learnerProfile.full_name?.trim() || learnerProfile.email?.split("@")[0] || "Learner";
+  if (existingCertificate) {
+    const { data: updatedCertificate, error: updateCertificateError } = await serviceClient
+      .from("certificates")
+      .update({ recipient_name: recipientName })
+      .eq("id", (existingCertificate as Certificate).id)
+      .select("*")
+      .single();
+
+    if (updateCertificateError) {
+      return NextResponse.json({ error: `Could not update certificate: ${updateCertificateError.message}` }, { status: 500 });
+    }
+
+    return NextResponse.json({ certificate: updatedCertificate as Certificate });
+  }
 
   const { data: certificate, error: certificateError } = await serviceClient
     .from("certificates")

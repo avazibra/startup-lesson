@@ -65,7 +65,7 @@ export default function AdminPage() {
     setProfile(
       data ?? {
         id: userId,
-        full_name: fallbackEmail?.split("@")[0] ?? "Learner",
+        full_name: null,
         email: fallbackEmail,
         role: "student"
       }

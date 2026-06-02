@@ -151,25 +151,36 @@ export async function POST(request: NextRequest) {
       serviceClient.from("certificates").select("*").eq("user_id", user.id).eq("lesson_id", body.lessonId).maybeSingle()
     ]);
 
-    if (existingCertificate) {
-      certificate = existingCertificate as Certificate;
-    } else if (course && profile) {
+    if (course && profile) {
       const learnerProfile = profile as Pick<Profile, "full_name" | "email">;
-      const recipientName = learnerProfile.full_name?.trim() || learnerProfile.email?.split("@")[0] || "Learner";
-      const { data: issuedCertificate } = await serviceClient
-        .from("certificates")
-        .insert({
-          user_id: user.id,
-          lesson_id: lesson.id,
-          course_id: lesson.course_id,
-          recipient_name: recipientName,
-          lesson_title: lesson.title,
-          course_title: course.title
-        })
-        .select("*")
-        .single();
+      const recipientName = learnerProfile.full_name?.trim();
 
-      certificate = (issuedCertificate as Certificate | null) ?? null;
+      if (!recipientName) {
+        certificate = null;
+      } else if (existingCertificate) {
+        const { data: updatedCertificate } = await serviceClient
+          .from("certificates")
+          .update({ recipient_name: recipientName })
+          .eq("id", (existingCertificate as Certificate).id)
+          .select("*")
+          .single();
+        certificate = (updatedCertificate as Certificate | null) ?? (existingCertificate as Certificate);
+      } else {
+        const { data: issuedCertificate } = await serviceClient
+          .from("certificates")
+          .insert({
+            user_id: user.id,
+            lesson_id: lesson.id,
+            course_id: lesson.course_id,
+            recipient_name: recipientName,
+            lesson_title: lesson.title,
+            course_title: course.title
+          })
+          .select("*")
+          .single();
+
+        certificate = (issuedCertificate as Certificate | null) ?? null;
+      }
     }
   }
 

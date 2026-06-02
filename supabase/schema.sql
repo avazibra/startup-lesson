@@ -106,7 +106,7 @@ begin
   insert into public.profiles (id, full_name, email, role)
   values (
     new.id,
-    coalesce(new.raw_user_meta_data->>'full_name', split_part(new.email, '@', 1)),
+    nullif(trim(new.raw_user_meta_data->>'full_name'), ''),
     new.email,
     'student'
   )
