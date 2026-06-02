@@ -273,8 +273,16 @@ h3 {
   border-bottom: 1px solid var(--line);
 }
 
+.lesson-title-row {
+  display: flex;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 10px 12px;
+  margin-bottom: 8px;
+}
+
 .hero-copy h2 {
-  margin: 0 0 8px;
+  margin: 0;
   font-size: clamp(1.5rem, 3.4vw, 2.25rem);
   line-height: 1.08;
 }
@@ -287,6 +295,12 @@ h3 {
 .hero-copy p {
   max-width: 760px;
   margin: 0;
+}
+
+.hero-copy .certificate-note {
+  margin-top: 10px;
+  color: var(--green-text);
+  font-weight: 760;
 }
 
 .video-frame {
@@ -1029,6 +1043,11 @@ fieldset {
 .lesson-row > span:first-child span {
   color: var(--muted);
   font-size: 0.84rem;
+}
+
+.lesson-row > span:first-child .certificate-line {
+  color: var(--green-text);
+  font-weight: 780;
 }
 
 .lesson-row.unsaved {

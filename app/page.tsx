@@ -546,8 +546,14 @@ export default function Home() {
           <article className="card">
             <div className="hero-copy">
               <p className="eyebrow">Video lesson</p>
-              <h2>{bundle.lesson.title}</h2>
+              <div className="lesson-title-row">
+                <h2>{bundle.lesson.title}</h2>
+                {bundle.lesson.provides_certificate && <span className="pill success">Certificate available</span>}
+              </div>
               <p>{bundle.lesson.description}</p>
+              {bundle.lesson.provides_certificate && (
+                <p className="certificate-note">Pass this lesson quiz to earn a certificate for this lesson.</p>
+              )}
             </div>
             <div className="video-frame">
               <div id="player" aria-label="YouTube lesson video" />
@@ -652,6 +658,7 @@ function LessonList({
                 {lesson.lesson_order}. {lesson.title}
               </strong>
               <span>{lesson.progress?.quiz_passed ? "Completed" : lesson.is_locked ? "Locked" : "Available"}</span>
+              {lesson.provides_certificate && <span className="certificate-line">Certificate available</span>}
             </span>
             <span className={`pill ${lesson.progress?.quiz_passed ? "success" : lesson.is_locked ? "warning" : ""}`}>
               {lesson.progress?.quiz_passed ? "Done" : lesson.is_locked ? "Locked" : "Open"}
