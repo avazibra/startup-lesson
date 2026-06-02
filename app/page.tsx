@@ -68,7 +68,6 @@ export default function Home() {
   const nextLessonUnlocked = quizPassed;
   const lessonProgressPercent = nextLessonUnlocked ? 100 : quizUnlocked ? 50 : 0;
   const isAdmin = profile?.role === "admin";
-  const modeLabel = isSupabaseConfigured ? "Supabase mode" : "Demo mode";
 
   useEffect(() => {
     if (!supabase) return;
@@ -512,7 +511,6 @@ export default function Home() {
             <h1>{bundle.lesson.title}</h1>
           </div>
           <div className="top-actions">
-            <span className={`pill ${isSupabaseConfigured ? "success" : "warning"}`}>{modeLabel}</span>
             <ThemeToggle />
             <nav className="tabs" aria-label="App sections">
               <Link className="tab active" href="/">
