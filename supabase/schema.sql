@@ -44,22 +44,7 @@ create table if not exists public.quiz_questions (
   created_at timestamptz not null default now()
 );
 
-create or replace view public.lesson_quiz_questions as
-select
-  quiz_questions.id,
-  quiz_questions.lesson_id,
-  quiz_questions.prompt,
-  quiz_questions.choice_type,
-  quiz_questions.options,
-  quiz_questions.explanation,
-  quiz_questions.question_order,
-  quiz_questions.created_at
-from public.quiz_questions
-join public.lessons on lessons.id = quiz_questions.lesson_id
-where lessons.is_published
-  and lessons.archived_at is null;
-
-grant select on public.lesson_quiz_questions to anon, authenticated;
+drop view if exists public.lesson_quiz_questions;
 
 create table if not exists public.lesson_progress (
   id uuid primary key default gen_random_uuid(),

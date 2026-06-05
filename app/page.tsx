@@ -193,17 +193,13 @@ export default function Home() {
       setSelectedLessonId(lessonIdToLoad);
     }
 
-    const [{ data: lesson, error: lessonError }, { data: questions, error: questionsError }] = await Promise.all([
+    const [{ data: lesson, error: lessonError }, questions] = await Promise.all([
       supabase.from("lessons").select("*").eq("id", lessonIdToLoad).eq("is_published", true).single(),
-      supabase
-        .from("lesson_quiz_questions")
-        .select("id, lesson_id, prompt, choice_type, options, explanation, question_order")
-        .eq("lesson_id", lessonIdToLoad)
-        .order("question_order")
+      loadLearnerQuestions(lessonIdToLoad)
     ]);
 
-    if (lessonError || questionsError || !lesson || !questions) {
-      setStatusMessage(lessonError?.message ?? questionsError?.message ?? "Could not load lesson content.");
+    if (lessonError || !lesson || !questions.length) {
+      setStatusMessage(lessonError?.message ?? "Could not load lesson content.");
       return;
     }
 
@@ -217,6 +213,14 @@ export default function Home() {
     });
 
     await loadLessonList(publishedLessons);
+  }
+
+  async function loadLearnerQuestions(lessonId: string) {
+    const response = await fetch(`/api/lessons/${lessonId}/questions`);
+    if (!response.ok) return [];
+
+    const payload = (await response.json()) as { questions?: Omit<QuizQuestion, "correct_answers">[] };
+    return payload.questions ?? [];
   }
 
   async function loadUserData(userId: string, fallbackEmail: string | null) {
